@@ -60,7 +60,7 @@ def choose_pivot(v,x,alive,mode='max_norm',debug=False):
     else:
         return -1
 
-def next_direction(p,v,x,a,b,alive,basis,debug=False):
+def next_direction(p,v,x,a,b,alive,basis,debug=False,bigger_first=False):
     u=np.zeros(len(v))
     u[p]=1
     B=np.matmul(np.transpose(np.vstack(tuple([e for e in v]))),np.vstack(tuple([e for e in basis])).T)#is v already a list ? If so we can simplify syntax here
@@ -80,8 +80,8 @@ def next_direction(p,v,x,a,b,alive,basis,debug=False):
             v_perp=B[:,p]
     else:
         v_perp=B[:,p]
-    if ((v_perp-np.zeros(len(v[0])))<1e-12).all():
-        model=sklm.Lasso(fit_intercept=False,alpha=1e-16)
+    if ((v_perp)<1e-12).all() and bigger_first:
+        model=sklm.Lasso(fit_intercept=False,alpha=1e-32)
         model.fit(B_t,-B[:,p])
         u1=model.coef_
         colinear=True
@@ -91,7 +91,7 @@ def next_direction(p,v,x,a,b,alive,basis,debug=False):
     if debug:
         print(f'u1: {u1}')
     u[alive_and_not_pivot]=u1
-    if debug or max(np.abs(v_perp-B.dot(u)))>1e-10:
+    if debug or max(np.abs(v_perp-B.dot(u)))>1e-9:
         print(f'v_perp:{v_perp}')
         print(f'v_perp-sum u_i*v_i:{v_perp-B.dot(u)}')
     if debug:
@@ -120,14 +120,25 @@ def next_factor(x,u_,p,a,b,basis,colinear,debug=False,smallest_delta=False,bigge
             print(f'delta_-:{d_m}')
     except:
         print(f'No delta<=0: {deltas}')#could set d_m=0 maybe
-    r=random.random()
-    if ((r>d_p/(d_p-d_m) or (smallest_delta and d_p<abs(d_m)) or not colinear) and ((not bigger_first) or x[p]==0)) or x[p]>0:
-        if debug:
-            print('delta=delta_+')
-        return d_p,d_m
-    if debug:
-        print('delta=delta_-')
-    return d_m,d_p
+    if not bigger_first or not colinear or x[p]==0:
+        r=random.random()
+        if r>d_p/(d_p-d_m) or (smallest_delta and d_p<abs(d_m)):
+            if debug:
+                print('delta=delta_+')
+            return d_p,d_m
+        else:
+            if debug:
+                print('delta=delta_-')
+            return d_m,d_p
+    else:
+        if x[p]>0:
+            if debug:
+                print('delta=delta_+')
+            return d_p,d_m
+        else:
+            if debug:
+                print('delta=delta_-')
+            return d_m,d_p
 
 def change_basis(v,basis1,basis2):#from basis1 to basis2
     return np.matmul(np.linalg.inv(np.transpose(np.array(basis2))),np.matmul(np.transpose(np.array(basis1)),v))
@@ -166,7 +177,7 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
     while p!=-1:
         if debug:
             print(f'\n Iteration {i}')
-        u,colinear=next_direction(p,v,x,a,b,alive,basis,debug=debug)
+        u,colinear=next_direction(p,v,x,a,b,alive,basis,debug=debug,bigger_first=bigger_first)
         d1,d2=next_factor(x,u,p,a,b,basis,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first)
         if plot:
             plot_situation_v2(v,p,x,u,[d1,d2],i)
