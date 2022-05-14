@@ -11,6 +11,7 @@ from itertools import chain, combinations
 import pickle
 import sys
 import sklearn.linear_model as sklm
+import quadprog
 #matplotlib.use("pgf")
 matplotlib.rcParams.update({
     "pgf.texsystem": "pdflatex",
@@ -60,7 +61,7 @@ def choose_pivot(v,x,alive,mode='max_norm',debug=False):
     else:
         return -1
 
-def next_direction(p,v,x,a,b,alive,basis,debug=False,bigger_first=False):
+def next_direction(p,v,x,a,b,alive,basis,debug=False,bigger_first=False,force_balance=False):
     u=np.zeros(len(v))
     u[p]=1
     B=np.matmul(np.transpose(np.vstack(tuple([e for e in v]))),np.vstack(tuple([e for e in basis])).T)#is v already a list ? If so we can simplify syntax here
@@ -85,21 +86,35 @@ def next_direction(p,v,x,a,b,alive,basis,debug=False,bigger_first=False):
         model.fit(B_t,-B[:,p])
         u1=model.coef_
         colinear=True
-    else:
+        u[alive_and_not_pivot]=u1
+    elif not force_balance:
         u1=np.linalg.lstsq(B_t,-B[:,p])[0]
         colinear=False
-    if debug:
-        print(f'u1: {u1}')
-    u[alive_and_not_pivot]=u1
-    if debug or max(np.abs(v_perp-B.dot(u)))>1e-9:
-        print(f'v_perp:{v_perp}')
-        print(f'v_perp-sum u_i*v_i:{v_perp-B.dot(u)}')
-    if debug:
+        u[alive_and_not_pivot]=u1
+    else:
+        P=B.T.dot(B)
+        A=np.eye(len(v))[~alive_and_not_pivot,:]
+        A=np.vstack((A,np.ones(len(v))))
+        b=np.zeros(len(v))
+        b[p]=1
+        b=b[~alive_and_not_pivot]
+        b=np.append(b,0)
+        u=quadprog_solve_qp(P,np.zeros(len(v)),A=A,b=b)
+        colinear=False
+    if debug or (max(np.abs(v_perp-B.dot(u)))>1e-9 and not force_balance):
         print(f'v_perp:{v_perp}')
         print(f'v_perp-sum u_i*v_i:{v_perp-B.dot(u)}')
     if debug:
         print(f'Calculated update direction u:{u}')
     return change_basis(u,basis,orthonormal_basis(len(u))),colinear
+
+def quadprog_solve_qp(P, q, A=None, b=None):
+    qp_G = .5 * (P + P.T)   # make sure P is symmetric
+    qp_a = -q
+    qp_C = -A.T
+    qp_b = -b
+    meq = A.shape[0]
+    return quadprog.solve_qp(qp_G, qp_a, qp_C, qp_b, meq)[0]
 
 def next_factor(x,u_,p,a,b,basis,colinear,debug=False,smallest_delta=False,bigger_first=False):
     u=change_basis(u_,orthonormal_basis(len(x)),basis)
@@ -151,7 +166,7 @@ def orthonormal_basis(n):
         basis.append(v_i)
     return basis
 
-def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False):
+def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False):
     if a is None:
         if debug:
             print('Initializing a with -1s')
@@ -177,7 +192,7 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
     while p!=-1:
         if debug:
             print(f'\n Iteration {i}')
-        u,colinear=next_direction(p,v,x,a,b,alive,basis,debug=debug,bigger_first=bigger_first)
+        u,colinear=next_direction(p,v,x,a,b,alive,basis,debug=debug,bigger_first=bigger_first,force_balance=force_balance)
         d1,d2=next_factor(x,u,p,a,b,basis,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first)
         if plot:
             plot_situation_v2(v,p,x,u,[d1,d2],i)
