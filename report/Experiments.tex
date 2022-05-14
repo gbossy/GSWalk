@@ -1,0 +1,158 @@
+\documentclass[12pt]{article}
+\usepackage[margin=68pt]{geometry}%48 originally, commented originally
+%
+\usepackage{amsthm}
+\usepackage{amsmath}
+%\usepackage{parskip}
+\usepackage{rotating}
+\usepackage{cite}
+\usepackage{lmodern} % fix problems with typewriter font
+\usepackage{amsfonts}
+\usepackage{dsfont}
+\usepackage%[demo]
+{graphicx}
+\usepackage{subcaption}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{enumerate}
+\usepackage{paralist}
+\usepackage{hyperref}
+\usepackage{indentfirst}
+\usepackage{pgf,tikz,pgfplots}
+
+
+\DeclareMathAlphabet{\mymathbb}{U}{BOONDOX-ds}{m}{n}
+\usepackage[linesnumbered,vlined,boxruled]{algorithm2e}%ruled in 1st param
+\pgfplotsset{compat=1.15}
+\usepackage{mathrsfs}
+\usetikzlibrary{arrows}
+\usepackage%[compact]
+{titlesec}
+  %  \titlespacing{\section}{0pt}{2ex}{1.ex}
+  %  \titlespacing{\subsection}{0pt}{1.5ex}{1ex}
+   % \titlespacing{\subsubsection}{0pt}{1ex}{1ex}
+%\usepackage[usenames]{color}
+    \setlength{\parskip}{0.23cm}
+    \setlength{\parindent}{1em}
+    
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma} 
+\newtheorem{claim}[theorem]{Claim}
+\newtheorem{corollary}[theorem]{Corollary}
+\newcommand{\dom}{$dom$}
+\title{Studying the Gram-Schmidt Walk}
+\author{Gaëtan Bossy, under the supervision of Adam Marcus\\Chair of Combinatorial Analysis}
+\begin{document}
+\maketitle
+%Issue with lindisc(point rather than [0,1]^n vector
+\begin{center}\bf Abstract\end{center}
+\small TODO
+\section{Introduction}
+\section{Generalizing to any hyperparallelepiped}
+\section{Experiments and Properties}
+By balance of the assignment, we mean the difference between the number of 1s and -1s. An assignment is perfectly balanced if its sum is 0.
+
+\subsection{Algorithms discrepancy comparison}
+We compare the output discrepancy of GSW, DGSW, the naive walk and for some small $n$ also the best assignment found via brute forcing on all possibilities. We do this for$n=5,10,15,20$ and 40, and with $d=2^i$ for $i\in\{1,\dots,15\}$, where we sample $n$ vectors from the $d$-dimensional ball of radius 1.
+
+Our results are visible in Figure \ref{output_disc}. We can see that GSW actually gives the worst results in terms of discrepancy minimization, but that when the dimension of the vector grows all methods seem to give similar results asymptotically. Note that we cannot say that the naive walk is just a better discrepancy-minimizing algorithm as these results would probably be different if we modified the distribution of input vectors.
+
+\subsection{Does translation affect the balance of the assignment ?}\label{trans_balance}
+If your initial group of vector is centered around 0, we would expect that translating it away will force it to have a greater balance between -1s and 1s in order to balance the translation part added to each vector.
+
+\subsubsection{Experiment}
+We sample 200 input vectors from the ball in dimension 200. We then run the GSW and DGSW 100 times each on those vector translated by some random norm 1 vector multiplied by some factor. We use the factors 0,1,2,5 and 10 and compare the results.
+
+\subsubsection{Results}
+\begin{center}
+\begin{table}[h]
+\begin{tabular}{l|llllll}
+ Factor & 0 & 1  & 2 & 5 & 10  \\
+\hline
+GSW  & 9.7 & 0.96 & 0.46 & 0.1 & 0.06 \\
+DGSW & 44.5 & 1.78 & 0.32 & 0.08 & 0.04
+\end{tabular}
+\caption{Result of our experiments on the balance of assignments depending on how much the vectors are transated. The numbers shown are the average absolute value of the sums of output vectors. A smaller number indicates that the assignment has a more balanced assignment, that is the number of 1s and -1s are closer.}
+\label{balance_when_translated}
+\end{table}
+\end{center}
+
+We can see that indeed the further away from 0 our input vectors are translated the more balanced the assignments are, as expected. It's interesting to notice that assignments from the DGSW are way less balanced than with the GSW. These experiments make us want to try to build a variant of GSW that can have a balance parameter thanks to the balancing properties of translation. That is what we try in the following experiment.
+
+\subsection{A parameter to balance assignments}
+Inspired by section \ref{trans_balance}, we propose a slight modification of the GSW that pushes toward balanced assignments. The idea is to add a coordinate to the input vector and give more or less importance to that coordinate similarly to how the balance-robustness tradeoff is implemented in \ref{harshaw2019balancing}, except here we implement a tradeoff between assignment balance and output balance.
+
+Given input vectors $v_1,\dots,v_n\in\mathbb{R}^d$ and a parameter $\mu\in[0,1]$, we define $w_1,\dots,w_n\in\mathbb{R}^{d+1}$ as $$w_i=\begin{pmatrix}\sqrt{1-\mu}v_i \\ \sqrt{\mu}\end{pmatrix}.$$ This way the $w_i$'s have similar norm to the $v_i$'s, but maybe a different normalization depending on the norm of the $v_i$'s could be better. We then run the GSW on them and use the output assignment on the original vectors. Choosing $\mu=0$ is equivalent to doing the classical GSW algorithm, while using $\mu=1$ is equal to forcing exact balance. We run experiments to determine how much balance in the assignment we gain and how much further from \textbf{0} our output is for different $\mu$s.
+
+\subsubsection{Experiment}
+We use our just explained construction to compute an assignment on the $w_i$'s using GSW or DGSW, then see how this assignment performs on the original $v_i$'s in terms of balance of the assignment and discrepancy. We also program the fixed size GSW described in \ref{harshaw2019balancing} and compare it. We use $\mu\in\{0,0.001,0.01,0.1,0.25,0.5,0.75,0.9,0.99,0.999,1\}$, and $n$ vectors in dimension $n$ for $n\in\{10,20,50,100\}$. The results presented are averaged over 1000 runs.
+
+\subsubsection{Results}
+
+\begin{center}
+\begin{table}[h]
+\begin{tabular}{l|llllll}
+ $\mu$ & 0 & 01  & 2 & 5 & 10  \\
+\hline
+GSW  & 9.7 & 0.96 & 0.46 & 0.1 & 0.06 \\
+DGSW & 44.5 & 1.78 & 0.32 & 0.08 & 0.04
+\end{tabular}
+\caption{Result of our experiments on the balance of assignments depending on how much the vectors are transated. The numbers shown are the average absolute value of the sums of output vectors. A smaller number indicates that the assignment has a more balanced assignment, that is the number of 1s and -1s are closer.}
+\label{balance_when_translated}
+\end{table}
+\end{center}
+
+We can see that we can massively increase assignment balance without making the output norm much larger. For $\mu=0.999$ for example, it is very likely that an assignment is exactly balanced and thus this variant of the algorithm can provide balanced GSW assignments with high probability while keeping all properties of the classical GSW, as opposed to the balanced variant described in \ref{} which loses some of the original properties. The high probability comes from the subgaussianity bound.
+
+\subsection{Does norm affect the balance of the assignment ?}
+I would expect the norms not to affect the balance of the assignment, as multiplying every input vector by the same vector should mean the algorithm runs similarly.
+
+\subsection{Does norm affect when a vector is colored ?}
+The expected heuristic would have been that bigger vectors are colored earlier and the algorithm then colors the smaller ones to minimize discrepancy as that is what I'd instinctively do. It turns out that the algorithm actually does the reverse and colors the smaller vectors earlier than the bigger ones.
+
+We performed two experiments to observe this behavior. In both experiments, we have vectors $v_1,\dots,v_200$ of increasing norm and observe how close the coloring order is to $\mathcal{R}=\{200,199,$\dots$,1\}$. To do so, if $\mathcal{O}$ is the observed order, we look at the quantity 
+\begin{equation}
+\Delta_{o}=\sum_{i=1}^{200}|\mathcal{R}_i-\mathcal{O}_i|.
+\label{orderdistance}
+\end{equation}
+The smaller it is, the closer the 2 orders are. For each of the two experiments below, we ran the GSW 100 times and the deterministic GSW (DGSW) 100 times and recorded $\Delta_o$.
+
+\subsubsection{First Experiment}
+We sampled 200 vectors $\textbf{v}_1,\dots,\textbf{v}_{200}$ in the ball of radius 1 of dimension 200. For each $v_i$, we replaced it by $i\cdot \textbf{v}_i/\|\textbf{v}_i\|$ so that $\|\textbf{v}_i\|=i$ for each vector. 
+
+\subsubsection{Second Experiment}
+We sampled 200 vectors $\textbf{v}_1,\dots,\textbf{v}_{200}$ in the ball of radius 1 of dimension 200. For each $v_i$, we replaced it by $X_i\cdot \textbf{v}_i/\|\textbf{v}_i\|$ so that $\|\textbf{v}_i\|=X_i$ for each vector, where $X_i=1$ if $i<n/2$ and 200 otherwise.
+
+\subsubsection{Results}
+We also ran the same experiments with 200 vectors of constant norm as a comparison. The results are summarized in Figure \ref{norm_when_colored}.
+\begin{center}
+\begin{table}[h]
+\begin{tabular}{l|lll}
+     & Exp 1   & Exp 2    & Control  \\
+\hline
+GSW  & 18664.4 & 19997.32 & 13607.06 \\
+DGSW & 18641.6 & 19996.16 & 13431.68
+\end{tabular}
+\caption{Result of our experiments on the moment of coloring depending on the norm of the vectors. The numbers shown are the $\Delta_o$ as defined in equation \ref{orderdistance}.}
+\label{norm_when_colored}
+\end{table}
+\end{center}
+
+We can see that the vector orders are actually further away from $\mathcal{R}$ than the random orders produced with constant vectors, which means that bigger vectors actually get colored later in the process. Additionally, the DGSW doesn't seem to yield significantly different results. While this is not what I expected, this behavior actually makes sense, because if we multiply $\textbf{v}_i$ by $\mu\textbf{v}_i$, it's corresponding coordinate in $\textbf{u}$ is going to be divided by $\mu$, thus it will move less towards the border of the hypercube and thus be colored later than the shorter vectors.
+
+This motivates us to try to find a variant of the algorithm that would color bigger vectors earlier and thus perform better on an input such as $\{v,v,v,3v\}$ for $v\in\mathbb{R}^d$ for an arbbitrary $d\in\mathbb{N}$. One way would be to choose the pivot through some smart condition or to choose another feasible $\textbf{u}$ than the default least square solution with minimal norm, again through a smart criterion.
+
+One such idea is to force the pivot to be the largest norm vector, hen, when $v_\perp=\textbf{0}$, to select $u_t$ through lasso with a very small alpha ($\alpha=10^{-32}$ for example) in order to ensure that the smallest number possible of coordinates are nonzero, and finally to select $\delta_t$ by taking it to be of the same sign as the coordinate of $x$ corresponding to the pivot (or randomly if that coordinate is 0). This variant solves the issue mentioned in the previous paragraph but loses a lot of randomness in the process, so there probably exist some different additional constraint to add when computing $u_t$ in colinear cases that could work even better.
+\newpage
+%\appendix
+%\section{This is an appendix}
+
+
+\newpage
+%\nocite{*}
+%\bibliography{references}
+%\bibliographystyle{plain}
+
+% Add the References to the table of contents.
+\addcontentsline{toc}{section}{References}
+
+\end{document}
