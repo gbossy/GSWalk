@@ -61,7 +61,7 @@ def choose_pivot(v,x,alive,mode='max_norm',debug=False):
     else:
         return -1
 
-def next_direction(p,v,x,a,b,alive,basis,debug=False,bigger_first=False,force_balance=False):
+def next_direction(p,v,x,a,b,alive,old_alive_and_not_pivot,basis,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True):
     u=np.zeros(len(v))
     u[p]=1
     B=np.matmul(np.transpose(np.vstack(tuple([e for e in v]))),np.vstack(tuple([e for e in basis])).T)#is v already a list ? If so we can simplify syntax here
@@ -88,7 +88,38 @@ def next_direction(p,v,x,a,b,alive,basis,debug=False,bigger_first=False,force_ba
         colinear=True
         u[alive_and_not_pivot]=u1
     elif not force_balance:
-        u1=np.linalg.lstsq(B_t,-B[:,p])[0]
+        if fast_lst_sq and B_t.shape[0]>=B_t.shape[1]:
+            if X_t is None:
+                X_t=inv(B_t.T.dot(B_t))
+            else:
+                indices_to_update=[sum(alive_and_not_pivot[:x]) for x in range(alive_and_not_pivot.shape[0]) if ((not alive_and_not_pivot[x]) and old_alive_and_not_pivot[x])]
+                indices_to_update.reverse()
+                if debug:
+                    print(f'indices to update: {indices_to_update}')
+                for k in indices_to_update:
+                    #print(X_t[:,k])
+                    #print(X_t[k,:])
+                    update=X_t[k,k]**-1*np.matmul(X_t[:,k].reshape((X_t.shape[0],1)),X_t[k,:].reshape((1,X_t.shape[0])))
+                    if debug:
+                        print(f'X_t:{X_t}')
+                        print(f'update: {update}')
+                    X_t=(X_t-update)
+                    X_t=np.delete(X_t,k,0)
+                    X_t=np.delete(X_t,k,1)
+                if debug:
+                    error=X_t-inv(B_t.T.dot(B_t))
+                    if error.shape[0]!=0 and np.max(np.abs(error))>1e-9:
+                        print(f'error:{error}')
+                        print(np.max(np.abs(error)))
+            u1=np.matmul(X_t.dot(B_t.T),(-B[:,p]))
+            if debug:
+                u1_=np.linalg.lstsq(B_t,-B[:,p])[0]
+                error=u1-u1_
+                if error.shape[0]!=0 and np.max(np.abs(error))>1e-9:
+                    print(f'final error:{error}')
+                    print(np.max(np.abs(error)))
+        else:
+            u1=np.linalg.lstsq(B_t,-B[:,p])[0]
         colinear=False
         u[alive_and_not_pivot]=u1
     else:
@@ -106,7 +137,7 @@ def next_direction(p,v,x,a,b,alive,basis,debug=False,bigger_first=False,force_ba
         print(f'v_perp-sum u_i*v_i:{v_perp-B.dot(u)}')
     if debug:
         print(f'Calculated update direction u:{u}')
-    return change_basis(u,basis,orthonormal_basis(len(u))),colinear
+    return change_basis(u,basis,orthonormal_basis(len(u))),colinear,X_t,alive_and_not_pivot
 
 def quadprog_solve_qp(P, q, A=None, b=None):
     qp_G = .5 * (P + P.T)   # make sure P is symmetric
@@ -166,7 +197,7 @@ def orthonormal_basis(n):
         basis.append(v_i)
     return basis
 
-def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False):
+def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True):
     if a is None:
         if debug:
             print('Initializing a with -1s')
@@ -179,7 +210,7 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
         print('Basis is lacking vectors to be full-dimensional: replacing it by a canonical orthonormal basis')#could complete it with Gram-Schmidt maybe
         basis=None
     if basis is not None and np.linalg.cond(np.array(basis)) > 1/sys.float_info.epsilon:
-        print('Basis matrix is singular: replacing it by a canonical orthonormal basis')#could complete it with Gram-Schmidt maybe too
+        print('Basis matrix is singular: replacing it by a canonical orthonormal basis')
         basis=None
     if basis is None:
         basis=orthonormal_basis(len(v))
@@ -189,10 +220,12 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
     p=choose_pivot(v,x,alive,debug=debug,mode='random' if not bigger_first else 'max_norm')
     i=1
     colored=[]
+    X_t=None
+    old_alive=alive
     while p!=-1:
         if debug:
             print(f'\n Iteration {i}')
-        u,colinear=next_direction(p,v,x,a,b,alive,basis,debug=debug,bigger_first=bigger_first,force_balance=force_balance)
+        u,colinear,X_t,old_alive=next_direction(p,v,x,a,b,alive,old_alive,basis,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq)
         d1,d2=next_factor(x,u,p,a,b,basis,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first)
         if plot:
             plot_situation_v2(v,p,x,u,[d1,d2],i)
