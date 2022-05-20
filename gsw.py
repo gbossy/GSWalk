@@ -39,7 +39,7 @@ def get_alives(x,a,b,basis,previous=None,thresh=1e-12,debug=False):
     #print(alive)
     return alive,debug,None if previous is None else [i for i in range(len(alive)) if ((previous[i]) and not alive[i])]
 
-def choose_pivot(v,x,alive,mode='max_norm',debug=False):
+def choose_pivot(v,x,alive,mode='random',debug=False):
     if debug:
         print(f'Choosing pivot through mode {mode}.')
         print(f'x: {x}')
@@ -58,6 +58,11 @@ def choose_pivot(v,x,alive,mode='max_norm',debug=False):
     elif mode=='max_norm':
         norms=[norm(v[i]) if alive[i] else 0 for i in range(len(v))]
         return np.argmax(norms) if max(norms)!=0 else -1
+    elif mode=='norm':
+        norms=[norm(v[i]) if alive[i] else 0 for i in range(len(v))]
+        r=random.random()*sum(norms)
+        return np.argmin((np.cumsum(norms)-r)[np.cumsum(norms)-r>0]) if max(norms)!=0 else -1
+
     else:
         return -1
 
@@ -132,7 +137,7 @@ def next_direction(p,v,x,a,b,alive,old_alive_and_not_pivot,basis,X_t=None,debug=
         b=np.append(b,0)
         u=quadprog_solve_qp(P,np.zeros(len(v)),A=A,b=b)
         colinear=False
-    if debug or (max(np.abs(v_perp-B.dot(u)))>1e-9 and not force_balance):
+    if debug or (max(np.abs(v_perp-B.dot(u)))>1e-6 and not force_balance):
         print(f'v_perp:{v_perp}')
         print(f'v_perp-sum u_i*v_i:{v_perp-B.dot(u)}')
     if debug:
@@ -197,7 +202,7 @@ def orthonormal_basis(n):
         basis.append(v_i)
     return basis
 
-def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True):
+def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False):
     if a is None:
         if debug:
             print('Initializing a with -1s')
@@ -217,12 +222,15 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
     if sum(a<b)<len(x):
         print('Issue with hyper parallelepipeds: a>b for some dimension')
     alive,debug,_=get_alives(x,a,b,basis,debug=debug)
-    p=choose_pivot(v,x,alive,debug=debug,mode='random' if not bigger_first else 'max_norm')
-    i=1
+    p=choose_pivot(v,x,alive,debug=debug,mode=mode if mode is not None else'random' if not bigger_first else 'max_norm')
+    i=0
     colored=[]
     X_t=None
     old_alive=alive
+    pivot_in_colored=0 
+    pivots=[]
     while p!=-1:
+        pivots.append(p)
         if debug:
             print(f'\n Iteration {i}')
         u,colinear,X_t,old_alive=next_direction(p,v,x,a,b,alive,old_alive,basis,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq)
@@ -236,6 +244,8 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
         if debug:
             print('')
         colored.extend(newly_colored)
+        if p in newly_colored:
+            pivot_in_colored+=1
         if not alive[p]:
             p=choose_pivot(v,x,alive,debug=debug,mode='random' if not bigger_first else 'max_norm')
         i+=1
@@ -251,6 +261,10 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
             print(f'u:{change_basis(u,orthonormal_basis(len(x)),basis)}')
     if order:
         return x,colored
+    if return_pivots:
+        return x,pivots
+    elif return_pivot_in_colored:
+        return x,pivot_in_colored/i
     else:
         return x
 
@@ -405,7 +419,7 @@ def plot_situation_v2(v,p,x,u,deltas,i):
     tikzplotlib.save(f"gswalk{i}both.tex")
     plt.show()
     
-def naive_walk(vs_):
+def naive_walk(vs_,minimizing=True):
     vs=vs_.copy()
     indices=list(range(len(vs)))
     random.shuffle(indices)
@@ -413,7 +427,7 @@ def naive_walk(vs_):
     output=np.zeros(len(vs[0]))
     for i in indices:
         v=vs[i]
-        if norm(output+v)<norm(output-v):
+        if (norm(output+v)-norm(output-v))*(1 if minimizing else -1)<0 :
             x[i]=1
             output+=v
         else:
@@ -432,7 +446,7 @@ def powerset(iterable):
     s = list(iterable)
     return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
-def best_coloring(v):
+def best_coloring(v,minimizing=True):
     indices_subset=powerset(range(len(v)))
     v_mat=np.transpose(np.array(v))
     best_assignment=[]
@@ -440,7 +454,7 @@ def best_coloring(v):
     for i_s in indices_subset:
         assignment=np.array([1 if i in i_s else -1 for i in range(len(v))])
         disc=norm(np.matmul(v_mat,assignment))
-        if best_disc is None or disc<best_disc:
+        if best_disc is None or (disc-best_disc)*(1 if minimizing else -1)<0:
             best_disc=disc
             best_assignment=assignment
     return np.sqrt(best_disc),best_assignment
