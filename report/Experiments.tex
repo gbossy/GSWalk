@@ -46,14 +46,26 @@
 %Issue with lindisc(point rather than [0,1]^n vector
 \begin{center}\bf Abstract\end{center}
 \small TODO
+
+%say that vectors are sampled uniformly everytime we talk about a ball
+
 \section{Introduction}
 \section{Generalizing to any hyperparallelepiped}
 \section{Experiments and Properties}
 By balance of the assignment, we mean the difference between the number of 1s and -1s. An assignment is perfectly balanced if its sum is 0.
 
-\subsection{Algorithms discrepancy comparison}
+\subsection{How good is the GSW at minimizing output discrepancy ?}
+We're interested in seeing how well does the GSW actually perform in minimizing the norm. We will compare it to the naive walk defined in \ref{}, the deterministic GSW \ref{} and the actual best computed via bruteforcing.
+
+\subsubsection{Experiment}\label{how_good_at_minimizing_disc}
 We compare the output discrepancy of GSW, DGSW, the naive walk and for some small $n$ also the best assignment found via brute forcing on all possibilities. We do this for$n=5,10,15,20$ and 40, and with $d=2^i$ for $i\in\{1,\dots,15\}$, where we sample $n$ vectors from the $d$-dimensional ball of radius 1.
 
+\subsubsection{Results}
+\begin{figure}
+\centering
+%\include{output_disc}
+\caption{}
+\end{figure}
 Our results are visible in Figure \ref{output_disc}. We can see that GSW actually gives the worst results in terms of discrepancy minimization, but that when the dimension of the vector grows all methods seem to give similar results asymptotically. Note that we cannot say that the naive walk is just a better discrepancy-minimizing algorithm as these results would probably be different if we modified the distribution of input vectors.
 
 \subsection{Does translation affect the balance of the assignment ?}\label{trans_balance}
@@ -79,31 +91,31 @@ DGSW & 44.5 & 1.78 & 0.32 & 0.08 & 0.04
 We can see that indeed the further away from 0 our input vectors are translated the more balanced the assignments are, as expected. It's interesting to notice that assignments from the DGSW are way less balanced than with the GSW. These experiments make us want to try to build a variant of GSW that can have a balance parameter thanks to the balancing properties of translation. That is what we try in the following experiment.
 
 \subsection{A parameter to balance assignments}
-Inspired by section \ref{trans_balance}, we propose a slight modification of the GSW that pushes toward balanced assignments. The idea is to add a coordinate to the input vector and give more or less importance to that coordinate similarly to how the balance-robustness tradeoff is implemented in \ref{harshaw2019balancing}, except here we implement a tradeoff between assignment balance and output balance.
+Inspired by section \ref{trans_balance}, we propose a slight modification of the GSW that pushes toward balanced assignments. The idea is to add a coordinate to the input vector and give more or less importance to that coordinate similarly to how the balance-robustness tradeoff is implemented in \cite{harshaw2019balancing}, except here we implement a tradeoff between assignment balance and output balance.
 
 Given input vectors $v_1,\dots,v_n\in\mathbb{R}^d$ and a parameter $\mu\in[0,1]$, we define $w_1,\dots,w_n\in\mathbb{R}^{d+1}$ as $$w_i=\begin{pmatrix}\sqrt{1-\mu}v_i \\ \sqrt{\mu}\end{pmatrix}.$$ This way the $w_i$'s have similar norm to the $v_i$'s, but maybe a different normalization depending on the norm of the $v_i$'s could be better. We then run the GSW on them and use the output assignment on the original vectors. Choosing $\mu=0$ is equivalent to doing the classical GSW algorithm, while using $\mu=1$ is equal to forcing exact balance. We run experiments to determine how much balance in the assignment we gain and how much further from \textbf{0} our output is for different $\mu$s.
 
 \subsubsection{Experiment}
-We use our just explained construction to compute an assignment on the $w_i$'s using GSW or DGSW, then see how this assignment performs on the original $v_i$'s in terms of balance of the assignment and discrepancy. We also program the fixed size GSW described in \ref{harshaw2019balancing} and compare it. We use $\mu\in\{0,0.001,0.01,0.1,0.25,0.5,0.75,0.9,0.99,0.999,1\}$, and $n$ vectors sampled from the ball of radius 1 in dimension $n$ for $=100$. The results presented are averaged over 1000 runs.
+We use our just explained construction to compute an assignment on the $w_i$'s using GSW or DGSW, then see how this assignment performs on the original $v_i$'s in terms of balance of the assignment and discrepancy. We also program the fixed size GSW described in \cite{harshaw2019balancing} and compare it. We use $\mu\in\{0,0.001,0.01,0.1,0.25,0.5,0.75,0.9,0.99,0.999,1\}$, and $n$ vectors sampled from the ball of radius 1 in dimension $n$ for $=100$. The results presented are averaged over 1000 runs.
 
 \subsubsection{Results}
 
 \begin{center}
 \begin{table}[h]
 \begin{tabular}{l|llllllllllll}
- $\mu$ &0&0.001&0.01&0.1&0.25&0.5&0.75&0.9&0.99&0.999&1&FSD \ref{harshaw2019balancing}\\
+ $\mu$ &0&0.001&0.01&0.1&0.25&0.5&0.75&0.9&0.99&0.999&1&FSD \cite{harshaw2019balancing}\\
 \hline
 AB&8.086&6.248&4.164&1.898&1.108&0.576&0.266&0.106&0.01&0.002&0&0 \\
 AD&5.259&5.275&5.266&5.311&5.341&5.321&5.336&5.331&5.334&5.337&9.917&5.317\\
 ABD&20.584&18.698&11.908&3.886&2.044&0.994&0.328&0.116&0.018&0.002&0&0\\
 ADD&4.863&4.837&4.775&4.821&4.885&4.938&4.991&5.004&5.008&5.002&9.851&5.01
 \end{tabular}
-\caption{Results of our experiment on the balance of assignments with our new balance-discrepancy tradeoff design. The balance numbers shown (lines starting with AB for average balance) are the average absolute value of the sums of output vectors, and the discrepancy numbers shown (lines starting with AD for average discrepancy) are the norms of the sum of $v_i\cdot x_i$, $x$ being the assignment produced by GSW for the $w_i$'s except for the last column in which we used the fixed size GSW design from \ref{harshaw2019balancing}. The D at the end of the last two lines indicates that in this case, the deterministic GSW algorithms was used. \\A smaller balance number indicates that the assignment has a more balanced assignment, that is the number of 1s and -1s are closer. A smaller discrepancy number indicates that the vectors are better balanced among the groups, that is the sum of each coordinate is closer to be the same in each group. FSD \ref{harshaw2019balancing} references the fixed size design from \ref{harshaw2019balancing}.}
+\caption{Results of our experiment on the balance of assignments with our new balance-discrepancy tradeoff design. The balance numbers shown (lines starting with AB for average balance) are the average absolute value of the sums of output vectors, and the discrepancy numbers shown (lines starting with AD for average discrepancy) are the norms of the sum of $v_i\cdot x_i$, $x$ being the assignment produced by GSW for the $w_i$'s except for the last column in which we used the fixed size GSW design from \cite{harshaw2019balancing}. The D at the end of the last two lines indicates that in this case, the deterministic GSW algorithms was used. \\A smaller balance number indicates that the assignment has a more balanced assignment, that is the number of 1s and -1s are closer. A smaller discrepancy number indicates that the vectors are better balanced among the groups, that is the sum of each coordinate is closer to be the same in each group. FSD \cite{harshaw2019balancing} references the fixed size design from \cite{harshaw2019balancing}.}
 \label{balance_tradeoff_results}
 \end{table}
 \end{center}
 
-We can see that we can massively increase assignment balance without making the output norm much larger. For $\mu=0.999$ for example, it is very likely that an assignment is exactly balanced and thus this variant of the algorithm can provide balanced GSW assignments with high probability while keeping all properties of the classical GSW, as opposed to the balanced variant described in \ref{harshaw2019balancing}, for which we don't know if some of the original properties still hold. The high probability comes from the subgaussianity bound.
+We can see that we can massively increase assignment balance without making the output norm much larger. For $\mu=0.999$ for example, it is very likely that an assignment is exactly balanced and thus this variant of the algorithm can provide balanced GSW assignments with high probability while keeping all properties of the classical GSW, as opposed to the balanced variant described in \cite{harshaw2019balancing}, for which we don't know if some of the original properties still hold. The high probability comes from the subgaussianity bound.
 
 \subsection{Does norm affect the balance of the assignment ?}
 I would expect the norms not to affect the balance of the assignment, as multiplying every input vector by the same vector should mean the algorithm runs similarly.
@@ -145,6 +157,27 @@ This motivates us to try to find a variant of the algorithm that would color big
 
 One such idea is to force the pivot to be the largest norm vector, hen, when $v_\perp=\textbf{0}$, to select $u_t$ through lasso with a very small alpha ($\alpha=10^{-32}$ for example) in order to ensure that the smallest number possible of coordinates are nonzero, and finally to select $\delta_t$ by taking it to be of the same sign as the coordinate of $x$ corresponding to the pivot (or randomly if that coordinate is 0). This variant solves the issue mentioned in the previous paragraph but loses a lot of randomness in the process, so there probably exist some different additional constraint to add when computing $u_t$ in colinear cases that could work even better.
 
+Another variant that works but only in this trivial example and not in slightly more complicated examples with for examples 2 groups of vectors is to just force the largest alive vector to be the pivot at every step. This is just a product of the solution of the least squares we're choosing as there are infinitely many that wouldn't work.
+
+\subsection{Do longer vectors stay pivot for longer ?}
+As longer vectors are colored later in the algorithm on average, one could think that they're staying as the pivot for longer. To test this hypothesis we design the following experiment.
+\subsubsection{Experiment}
+We sample 200 vectors of norm 1 in dimension 200 and multiply 100 of them by 200 (G1 with norm 1, G2 with norm 200). We then run the GSW 100 times with all these vectors as input and record for how long vectors of different norms (1 and 200) stay pivot once the become pivot.
+\subsubsection{Results}
+\begin{center}
+\begin{table}[h]
+\begin{tabular}{l|ll}
+ &ALOSAP G1&ALOSAP G2\\
+\hline
+GSW&6.101&2.281\\
+DGSW&5.989&2.277
+\end{tabular}
+\caption{Result of our experiments on whether long and short vectors stay for longer as the pivot. ALOSAP stands for average length of stay at pivot and is measured as the average number of steps over 100 runs.}
+\label{pivot_longer}
+\end{table}
+\end{center}
+Results are visible in Table \ref{pivot_longer}. We sede that shorter vectors tend to stay pivot for much longer than their longer counterparts. This could be explained by the fact that coordinates of the update direction for all long vectors are very small so longer vectors rarely get colored by a small vector pivot, but shorter vectors do get colored while the longer vectors are pivot.
+
 \subsection{Can we force bigger vectors to be colored earlier ?}
 Another technique that we could use would be to modify the choice of the direction. Currently, the bigger a vector is the later in the process it will be colored. One could multiply the computed direction in each of its coordinate by the norm of the vector corresponding to that coordinate, or the squared norm. %maybe add some reasoning why we might want to do that
 This would remove the orthogonality of updates, but in practice it didn't seem to change significantly how far the sum of outputs were from \textbf{0}. We can study how that affects the order of the coloring in experiments similar to those done in subsection \ref{norm_affect_when}.
@@ -172,6 +205,31 @@ We can see that our modifications indeed remove the late coloring. Multiplying o
  As we saw that larger vectors get colored later in the process on average when using the classical algorithm, one could ask themselves how to revert this effect. Let $A$ be the matrix containing our input vectors as columns. Using a singular value decomposition, we have that $A=U\Sigma V^T$ where $U\in\mathbb{R}^{m\times m}$ and $V\in\mathbb{R}^{n\times n}$ are orthonormal and $\Sigma\in\mathbb{R}^{m\times n}$ is all zeros except for the diagonal elements which are positive singular values. Using this decomposition, we can see that $A^+=V\Sigma^+U^T$ where $\Sigma^+$ is $\Sigma^T$ except nonzero entries $\sigma_i$ are replaced by their inverse $1/\sigma_i$. But if one replaced $\Sigma^+$ by $\Sigma$, then the  matrix multiplying the pivot vector would be $A^T$ instead of $A^+$. This suggestion from Pr. Marcus turned out not to work if we want to balance the vectors, but it actually does the opposite which is very interesting. 
 
 \subsubsection{Experiment 1}
+
+We sampled 200 vectors in dimension 200 in the ball of radius 1. We then ran the modified GSW algorithm where the next direction is computed via $u_t(\mathcal{A}_t\setminus\{p(t)\})=B_tv_{p(t)}$ and $u_t(p(t))=1, u_t(i)=0 \forall i\not\in\mathcal{A}_t$. Everything else is kept similar. 
+
+\subsubsection{Experiment 2}
+
+We run as similar experiment as in \ref{how_good_at_minimizing_disc} except we look for the discrepancy maximizing assignment via bruteforcing and look at the naive walk trying to maximize the output norm.
+
+\subsubsection{Results}
+
+\subsubsection{Results}
+\begin{figure}
+\centering
+\include{A_T_instead_of_lstsq_200}
+\caption{Output sums using the modified GSW and DGSW}
+\end{figure}
+
+The outputs are shown in the figure \ref{}. We can see that this modification seems like it now minimizes output balance instead of maximizing it, which was surprising to me at least. This seems like it could be useful to sample from unbalanced group assignments, or to find a subset to remove to maximize something. This might be equivalent to an already known algorithm, but if not I think there are probably interesting applications of this.
+
+\subsection{Are vectors with smaller dimensionality colored at the same moment as vectors with more dimensions ?}
+We want to know if vectors with a lot of 0's can be found among vectors that are less sparse, as that could be very interesting to solve various problems such as the planted clique.
+
+\subsubsection{Experiment}
+
+\subsubsection{Results}
+
 %\subsection{Can we make the algorithm faster with some clever factorization ?}
 \newpage
 %\appendix
