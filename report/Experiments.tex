@@ -50,11 +50,58 @@
 %say that vectors are sampled uniformly everytime we talk about a ball
 
 \section{Introduction}
+\section{The Algorithm}
+\begin{algorithm}[H]
+{\fontsize{10}{12}
+
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \Input{$\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$ with $\ell_2$ norm  at most 1, an initial coloring $\textbf{z}_0\in[-1,1]^n$}
+    \Output{a coloring $\textbf{z}_n \in \{-1,1\}^n$}
+   $A_1=\{i\in[n]:|\textbf{z}_0(i)|<1\}$, $n(1) = \max \{i \in A_1\}$ and $t=1$.\\
+    \While{$A_t\not=\emptyset$}{
+        Compute $\textbf{u}_t\in\mathbb{R}^n$ such that
+        $\begin{cases}
+            \textbf{u}_t(n(t)) =1\\
+            \textbf{u}_t(i) =0 \text{ if } i \notin A_t\\
+            \textbf{v}^\perp(t) = \textbf{v}_{n(t)} + \sum_{i \in A_t\setminus\{n(t)\}} \textbf{u}_t(i)\textbf{v}_i\\
+        \end{cases}$\\
+        $\Delta = \{\delta : \textbf{z}_{t-1} + \delta \textbf{u}_t \in [-1,1]^n\}$, let $\begin{cases}
+            \delta_t^+ = \max \Delta\\
+            \delta_t^- = \min \Delta
+        \end{cases}$
+         then $\delta_t = \begin{cases}
+            \delta_t^+ \text{ w.p. } \frac{-\delta_t^-}{(\delta_t^+ - \delta_t^-)}\\
+            \delta_t^- \text{ w.p. } \frac{\delta_t^+}{(\delta_t^+ - \delta_t^-)}
+        \end{cases}$\\
+        $\textbf{z}_t = \textbf{z}_{t-1} + \delta_t \textbf{u}_t$, $t\leftarrow t+1$,  $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$, $n(t) = \max \{i \in A_t\}$.
+    }
+    Output $\textbf{z}_t\in\{-1,1\}^n$.
+    %\caption{Gram-Schmidt walk}
+    \label{walk}
+    }%
+    \end{algorithm}
+%Explain each step in detal, why we want a martingale, why we choose that direction.
+%Give graphs of outputs and discuss the subgaussianity results
 \section{Generalizing to any hyperparallelepiped}
+%Explain the changes, give pseudocode, give outputs.
+\section{Generalizing to more than two groups}
+Discrepancy minimization is generally set in a 2-group paradigm, but it could be interesting to generalize the GSW to separate into more than 2 groups. For example, if one wanted to separate $n$ vectors in 3 groups, the GSW could first be used to separate into groups $G_+,G_-$ such that $\sum_{v\in G_+}v-2\cdot\sum_{v\in G_-}v\approx \textbf{0}$, by starting at $x_0=(1/3,1/3,\dots,1/3)\in\mathbb{R}^n$. Then the group $G_+$ could be again inputed into the GSW to separate it into $G_{++}$ and $G_{+-}$, and we would expect $G_-,G_{++} and G_{+-}$ to be roughly balanced mutually but also all together.
+
+But how do we know if a 3 group assignment $G_i$ for $i\in\{0,1,2\}$ is balanced ? For 3, one could use the complex roots of 1, $\omega_0=1 ,\omega_1$, and $\omega_2$, and check that $$\sum_{i\in\{0,1,2\}}\omega_i\sum_{v\in G_i}v\approx\textbf{0}.$$
+
+One issue it that this seems like a bandaid method, and it seems like it would yield before grou assignment to have an algorithm that separates in $m$ groups from the get go.
+
+Another issue is that this doesn't generalize to a higher number of groups, which is why seeing we need another perspective. One  idea is to link each group with a vertex of the $(m-1)$-dimensional regular simplex centered in \textbf{0} where $m$ is the number of groups we want to separate our vectors into. So we would want to assign each group to a vertex and verify that the sum of our vectors is close to \textbf{0} in each of the $m-1$ dimensions. This would mean that our coloring would live in $S_{m-1}^n$, each vector moving in its personal copy of the simplex until it gets fixed to one of the vertices.
+
+We would have to adapt the choice of the update direction and the choice of $\delta$ which could maybe also be multi-dimensional. One big issue then is that choosing an update direction is far from obvious. Should we force the multidimensional vector of update of the pivot to be of norm 1 ? If so how to choose it ? Additionally, assuming we have an update direction, what should one do when the border of the simplex is hit but not the vertex ? Should we now force the coloring to stay fixed to that border and now move in that border ? Should we choose the update direction and $\delta$ in a way that borders are never hit outside of vertices ?
+
+All these questions are tough to answer, and generalizing the GSW to separate in $m$ groups would require understanding them deeply. Sadly, I did not succeed in finding such a generalization.
+
 \section{Experiments and Properties}
 By balance of the assignment, we mean the difference between the number of 1s and -1s. An assignment is perfectly balanced if its sum is 0.
 
-\subsection{How good is the GSW at minimizing output discrepancy ?}
+\subsection{How good is the GSW at minimizing output discrepancy in practice ?}
 We're interested in seeing how well does the GSW actually perform in minimizing the norm. We will compare it to the naive walk defined in \ref{}, the deterministic GSW \ref{} and the actual best computed via bruteforcing.
 
 \subsubsection{Experiment}\label{how_good_at_minimizing_disc}
@@ -87,10 +134,9 @@ DGSW & 44.5 & 1.78 & 0.32 & 0.08 & 0.04
 \label{balance_when_translated}
 \end{table}
 \end{center}
-
 We can see that indeed the further away from 0 our input vectors are translated the more balanced the assignments are, as expected. It's interesting to notice that assignments from the DGSW are way less balanced than with the GSW. These experiments make us want to try to build a variant of GSW that can have a balance parameter thanks to the balancing properties of translation. That is what we try in the following experiment.
 
-\subsection{A parameter to balance assignments}
+\subsection{A parameter to balance assignments}\label{balance_parameter}
 Inspired by section \ref{trans_balance}, we propose a slight modification of the GSW that pushes toward balanced assignments. The idea is to add a coordinate to the input vector and give more or less importance to that coordinate similarly to how the balance-robustness tradeoff is implemented in \cite{harshaw2019balancing}, except here we implement a tradeoff between assignment balance and output balance.
 
 Given input vectors $v_1,\dots,v_n\in\mathbb{R}^d$ and a parameter $\mu\in[0,1]$, we define $w_1,\dots,w_n\in\mathbb{R}^{d+1}$ as $$w_i=\begin{pmatrix}\sqrt{1-\mu}v_i \\ \sqrt{\mu}\end{pmatrix}.$$ This way the $w_i$'s have similar norm to the $v_i$'s, but maybe a different normalization depending on the norm of the $v_i$'s could be better. We then run the GSW on them and use the output assignment on the original vectors. Choosing $\mu=0$ is equivalent to doing the classical GSW algorithm, while using $\mu=1$ is equal to forcing exact balance. We run experiments to determine how much balance in the assignment we gain and how much further from \textbf{0} our output is for different $\mu$s.
@@ -116,6 +162,13 @@ ADD&4.863&4.837&4.775&4.821&4.885&4.938&4.991&5.004&5.008&5.002&9.851&5.01
 \end{center}
 
 We can see that we can massively increase assignment balance without making the output norm much larger. For $\mu=0.999$ for example, it is very likely that an assignment is exactly balanced and thus this variant of the algorithm can provide balanced GSW assignments with high probability while keeping all properties of the classical GSW, as opposed to the balanced variant described in \cite{harshaw2019balancing}, for which we don't know if some of the original properties still hold. The high probability comes from the subgaussianity bound.
+
+\subsection{What else can we control by adding coordinates ?}
+We could think of a design where we want several subgroups, potentially of only 2 vectors per subgroup, to be balanced. We could then add a coordinate for each subgroup and put the same number on that coordinate for each member of the subgroup, while putting 0 for every vector that isn't in the subgroup. This would push towards balancing within any subgroup we want, and could be done via some parametering similar to what was done in section \ref{balance_parameter}. 
+
+Similarly, if we want 2 vectors to be in the same group, we could add a dimension and assign some number $x$ and $-x$ to these vectors in that new dimension while giving 0 to every other vector in that dimension. Adding dimension could be used to translate knowledge about the vector set into usable information for the algorithm.
+
+
 
 \subsection{Does norm affect the balance of the assignment ?}
 I would expect the norms not to affect the balance of the assignment, as multiplying every input vector by the same vector should mean the algorithm runs similarly.
@@ -150,7 +203,6 @@ DGSW & 18641.6 & 19996.16 & 13431.68
 \label{norm_when_colored}
 \end{table}
 \end{center}
-
 We can see that the vector orders are actually further away from $\mathcal{R}$ than the random orders produced with constant vectors, which means that bigger vectors actually get colored later in the process. Additionally, the DGSW doesn't seem to yield significantly different results. While this is not what I expected, this behavior actually makes sense, because if we multiply $\textbf{v}_i$ by $\mu\textbf{v}_i$, it's corresponding coordinate in $\textbf{u}$ is going to be divided by $\mu$, thus it will move less towards the border of the hypercube and thus be colored later than the shorter vectors.
 
 This motivates us to try to find a variant of the algorithm that would color bigger vectors earlier and thus perform better on an input such as $\{v,v,v,3v\}$ for $v\in\mathbb{R}^d$ for an arbbitrary $d\in\mathbb{N}$. One way would be to choose the pivot through some smart condition or to choose another feasible $\textbf{u}$ than the default least square solution with minimal norm, again through a smart criterion.
@@ -158,6 +210,8 @@ This motivates us to try to find a variant of the algorithm that would color big
 One such idea is to force the pivot to be the largest norm vector, hen, when $v_\perp=\textbf{0}$, to select $u_t$ through lasso with a very small alpha ($\alpha=10^{-32}$ for example) in order to ensure that the smallest number possible of coordinates are nonzero, and finally to select $\delta_t$ by taking it to be of the same sign as the coordinate of $x$ corresponding to the pivot (or randomly if that coordinate is 0). This variant solves the issue mentioned in the previous paragraph but loses a lot of randomness in the process, so there probably exist some different additional constraint to add when computing $u_t$ in colinear cases that could work even better.
 
 Another variant that works but only in this trivial example and not in slightly more complicated examples with for examples 2 groups of vectors is to just force the largest alive vector to be the pivot at every step. This is just a product of the solution of the least squares we're choosing as there are infinitely many that wouldn't work.
+
+A third variant that might help is to do quadratic programming instead of simple least squares when $v_\perp=\textbf{0}$. This way, we can force the quadratic program to minimize both $\|Bu\|$ but also $\|u\|$. This could be achieved by adding a line of 1's to the matrix $B$ containing all input vectors as column, and adding as conditions that the chosen $u$ must have a 1 in the pivot coordinate and 0s in already colored coordinates. Then if the $u$ chosen through this quadratic program doesn't yield $Bu=\textbf{0}$, we discard it and compute $u$ through the usual method. This technique coupled with choosing the longest alive vector as pivot actually solves trivial adversarial cases, and doesn't modify too much the algorithm.
 
 \subsection{Do longer vectors stay pivot for longer ?}
 As longer vectors are colored later in the algorithm on average, one could think that they're staying as the pivot for longer. To test this hypothesis we design the following experiment.
@@ -198,7 +252,6 @@ DGSW&6808.96&13100.02&13597.86&6830.82&13303.18&13344.14
 \label{norm_earlier}
 \end{table}
 \end{center}
-
 We can see that our modifications indeed remove the late coloring. Multiplying once makes it so the vectors are colored approximately randomly and the multiplying twice makes it so the bigger vectors are colored earlier, as intended. There are very likely other ways of getting a similar effect, potentially by adding coordinates smartly.
 
 \subsection{Can we find another way of computing the update direction ?}
@@ -213,23 +266,42 @@ We sampled 200 vectors in dimension 200 in the ball of radius 1. We then ran the
 We run as similar experiment as in \ref{how_good_at_minimizing_disc} except we look for the discrepancy maximizing assignment via bruteforcing and look at the naive walk trying to maximize the output norm.
 
 \subsubsection{Results}
-
-\subsubsection{Results}
 \begin{figure}
 \centering
 \include{A_T_instead_of_lstsq_200}
-\caption{Output sums using the modified GSW and DGSW}
+\caption{Output sums using the modified GSW and DGSW where the update direction is computed by multiplying the pivot vector by $A^T$.}
+\label{A_T_instead_of_lstsq}
 \end{figure}
-
-The outputs are shown in the figure \ref{}. We can see that this modification seems like it now minimizes output balance instead of maximizing it, which was surprising to me at least. This seems like it could be useful to sample from unbalanced group assignments, or to find a subset to remove to maximize something. This might be equivalent to an already known algorithm, but if not I think there are probably interesting applications of this.
+The outputs are shown in the figure \ref{A_T_instead_of_lstsq}. We can see that this modification seems like it now minimizes output balance instead of maximizing it, which was surprising to me at least. This seems like it could be useful to sample from unbalanced group assignments, or to find a subset to remove to maximize something. This might be equivalent to an already known algorithm, but if not I think there are probably interesting applications of this.
 
 \subsection{Are vectors with smaller dimensionality colored at the same moment as vectors with more dimensions ?}
-We want to know if vectors with a lot of 0's can be found among vectors that are less sparse, as that could be very interesting to solve various problems such as the planted clique.
+We want to know if vectors with a lot of 0's can be found among vectors that are less sparse, as that could be very interesting to solve various problems such as the planted clique. We will investigate how early they're colored on average.
 
 \subsubsection{Experiment}
+We sample 100 vectors of dimension 100 from the ball radius 1 but with 100 additional coordinates locked to zero. We also sample 100 vectors of dimension 200 from the ball of radius 1. We're interested in comparing whether vectors in one group get colored earlier than vectors from the other group on average. To do so we do 100 runs with each of three variants. In the first variant (V1), the vectors aren't changed. In the second one (V2), every vector is normalized. In the third one (V3), every vector is normalized but the non-sparse vectors are normalized to a norm of 2 so that the scale of the elements are similar to the sparse vectors normalized to a norm of 1. The last three variants are respective copies of the first three except the coordinates of the sparse vectors are shuffled so that the 0's aren's uniformly placed in the sparse group.
 
 \subsubsection{Results}
+%Table
+\begin{center}
+\begin{table}[h]
+\begin{tabular}{l|llllll}
+ &V1&V2&V3&V4&V5&V6\\
+\hline
+GSW&75.781&75.281&60.726&98.163&100.268&68.584\\
+DGSW&75.393&76.594&61.692&97.231&98.883&68.088
+\end{tabular}
+\caption{Result of our experiments on whether sparse vectors are colored earlier. The numbers shown are the average coloring step of sparse vectors over 100 runs of the GSW.}
+\label{pivot_longer}
+\end{table}
+\end{center}
+We can see that sparse vectors are colored much earlier in the first 3 variants, and even earlier in the third variant, which might be explained also by their smaller norm relative to the non-sparse vectors. The last three variant show use that the earliness effect seems to be nearly completely linked to the fact that the sparse vector were not shuffled in the first three variants, as the sparse vectors are colored very close to the average of 100.
 
+%Additional ideas
+It could also be interesting to investigate how balanced each vector group is and how noise affect this result, as this could help us discover a hidden group in a larger set. Another interesting thing would be to see how varying the relative size of the two groups affects the phenomenon. 
+%We could also just measure this for sparse vectors that do not necessarily all have 0's on the same dimensions. DONE
+
+\subsection{How often is the pivot vector colored ?}
+\subsection{Can we force the algorithm to color the pivot vector +?}
 %\subsection{Can we make the algorithm faster with some clever factorization ?}
 \newpage
 %\appendix
