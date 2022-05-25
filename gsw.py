@@ -57,6 +57,8 @@ def choose_pivot(v,x,alive,mode='random',debug=False):
             return -1
     elif mode=='max_norm':
         norms=[norm(v[i]) if alive[i] else 0 for i in range(len(v))]
+        if debug:
+            print(f'norms: {norms}')
         return np.argmax(norms) if max(norms)!=0 else -1
     elif mode=='norm':
         norms=[norm(v[i]) if alive[i] else 0 for i in range(len(v))]
@@ -66,7 +68,7 @@ def choose_pivot(v,x,alive,mode='random',debug=False):
     else:
         return -1
 
-def next_direction(p,v,x,a,b,alive,old_alive_and_not_pivot,basis,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True):
+def next_direction(p,v,x,a,b,alive,old_alive_and_not_pivot,basis,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=True):
     u=np.zeros(len(v))
     u[p]=1
     B=np.matmul(np.transpose(np.vstack(tuple([e for e in v]))),np.vstack(tuple([e for e in basis])).T)#is v already a list ? If so we can simplify syntax here
@@ -93,7 +95,24 @@ def next_direction(p,v,x,a,b,alive,old_alive_and_not_pivot,basis,X_t=None,debug=
         colinear=True
         u[alive_and_not_pivot]=u1
     elif not force_balance:
-        if fast_lst_sq and B_t.shape[0]>=B_t.shape[1]:
+        all_good=False
+        if solve_adversarial and ((v_perp)<1e-12).all():
+            B_min=np.vstack((B,np.ones(len(v))))
+            P=B_min.T.dot(B_min)+1e-15*np.eye(B_min.shape[1])
+            A=np.eye(len(v))[~alive_and_not_pivot,:]
+            #A=np.vstack((A,np.ones(len(v))))
+            b=np.zeros(len(v))
+            b[p]=1
+            b=b[~alive_and_not_pivot]
+            #b=np.append(b,0)
+            u=quadprog_solve_qp(P,np.zeros(len(v)),A=A,b=b)
+            colinear=False
+            all_good=(v_perp-B.dot(u)<1e-12).all()
+        if not all_good and solve_adversarial and ((v_perp)<1e-12).all():
+            u=np.zeros(len(v))
+            u[p]=1
+            print('Additional constraints breached the framework and were thus discarded')
+        if fast_lst_sq and B_t.shape[0]>=B_t.shape[1] and not all_good:
             if X_t is None:
                 X_t=inv(B_t.T.dot(B_t))
             else:
@@ -101,22 +120,28 @@ def next_direction(p,v,x,a,b,alive,old_alive_and_not_pivot,basis,X_t=None,debug=
                 indices_to_update.reverse()
                 if debug:
                     print(f'indices to update: {indices_to_update}')
-                for k in indices_to_update:
-                    #print(X_t[:,k])
-                    #print(X_t[k,:])
-                    update=X_t[k,k]**-1*np.matmul(X_t[:,k].reshape((X_t.shape[0],1)),X_t[k,:].reshape((1,X_t.shape[0])))
-                    if debug:
-                        print(f'X_t:{X_t}')
-                        print(f'update: {update}')
-                    X_t=(X_t-update)
-                    X_t=np.delete(X_t,k,0)
-                    X_t=np.delete(X_t,k,1)
+                try:
+                    for k in indices_to_update:
+                        update=X_t[k,k]**-1*np.matmul(X_t[:,k].reshape((X_t.shape[0],1)),X_t[k,:].reshape((1,X_t.shape[0])))
+                        if debug:
+                            print(f'X_t:{X_t}')
+                            print(f'update: {update}')
+                        X_t=(X_t-update)
+                        X_t=np.delete(X_t,k,0)
+                        X_t=np.delete(X_t,k,1)
+                except IndexError:
+                    print(f'x:{x}')
                 if debug:
                     error=X_t-inv(B_t.T.dot(B_t))
                     if error.shape[0]!=0 and np.max(np.abs(error))>1e-9:
+                        print(f'X_t:{X_t}')
                         print(f'error:{error}')
                         print(np.max(np.abs(error)))
-            u1=np.matmul(X_t.dot(B_t.T),(-B[:,p]))
+            #if (X_t!=np.array([0])).all():
+            u1=np.matmul(np.matmul(X_t,(B_t.T)),(-B[:,p]))
+            #else:
+            #    print('Replacing X_t by zero')
+            #    u1=np.zeros(1)
             if debug:
                 u1_=np.linalg.lstsq(B_t,-B[:,p])[0]
                 error=u1-u1_
@@ -152,7 +177,7 @@ def quadprog_solve_qp(P, q, A=None, b=None):
     meq = A.shape[0]
     return quadprog.solve_qp(qp_G, qp_a, qp_C, qp_b, meq)[0]
 
-def next_factor(x,u_,p,a,b,basis,colinear,debug=False,smallest_delta=False,bigger_first=False):
+def next_factor(x,u_,p,a,b,basis,colinear,debug=False,smallest_delta=False,bigger_first=False,thresh=0):
     u=change_basis(u_,orthonormal_basis(len(x)),basis)
     non_zero=np.abs(u)>1e-10
     x_=change_basis(x,orthonormal_basis(len(x)),basis)[non_zero]
@@ -160,17 +185,19 @@ def next_factor(x,u_,p,a,b,basis,colinear,debug=False,smallest_delta=False,bigge
     if debug:
         print(f'All deltas considered:{deltas}')
     try:
-        d_p=min(deltas[deltas>=0])
+        d_p=min(deltas[deltas>thresh])
         if debug:
             print(f'delta_+:{d_p}')
     except:
         print(f'No delta>=0: {deltas}')#could set d_p=0 maybe
     try:
-        d_m=max(deltas[deltas<=0])
+        d_m=max(deltas[deltas<-thresh])
         if debug:
             print(f'delta_-:{d_m}')
     except:
         print(f'No delta<=0: {deltas}')#could set d_m=0 maybe
+    if d_p<1e-10 and d_m>-1e-10:
+        print('Issue: too small deltas')
     if not bigger_first or not colinear or x[p]==0:
         r=random.random()
         if r>d_p/(d_p-d_m) or (smallest_delta and d_p<abs(d_m)):
@@ -247,7 +274,8 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
         if p in newly_colored:
             pivot_in_colored+=1
         if not alive[p]:
-            p=choose_pivot(v,x,alive,debug=debug,mode='random' if not bigger_first else 'max_norm')
+            p=choose_pivot(v,x,alive,debug=debug,mode=mode if mode is not None else'random' if not bigger_first else 'max_norm')
+        x[~alive]=np.round(x[~alive])
         i+=1
         if i-5>len(x):
             print('Issue, the algorithm took more steps than expected')
