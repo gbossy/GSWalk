@@ -30,13 +30,11 @@ def get_alives(x,a,b,basis,previous=None,thresh=1e-12,debug=False):
         print(f'a: {a}')
         print(f'b: {b}')
     x_=change_basis(x.copy(),orthonormal_basis(len(x)),basis)
-    #print('get_alives')
-    #print(x_)
     if sum((x_-a)>-thresh)<len(x_) or sum((b-x_)>-thresh)<len(x_):
         print('Issue: x is out of bound!')
         debug=True
     alive=(np.abs(x_-a)>thresh) & (np.abs(x_-b)>thresh)
-    #print(alive)
+    #alive=np.array([-1<x[i]<1 for i in range(len(x))])
     return alive,debug,None if previous is None else [i for i in range(len(alive)) if ((previous[i]) and not alive[i])]
 
 def choose_pivot(v,x,alive,mode='random',debug=False):
@@ -48,27 +46,56 @@ def choose_pivot(v,x,alive,mode='random',debug=False):
         for i in range(len(x),0,-1):
             if alive[i]:
                 return i
-        return -1
+        pivot= -1
     elif mode=='random':
         try:
-            return random.choice(np.arange(len(x))[alive])
+            pivot= random.choice(np.arange(len(x))[alive])
         except IndexError:
             #print('Every element is fixed')
-            return -1
+            pivot= -1
     elif mode=='max_norm':
         norms=[norm(v[i]) if alive[i] else 0 for i in range(len(v))]
         if debug:
             print(f'norms: {norms}')
-        return np.argmax(norms) if max(norms)!=0 else -1
+        pivot= np.argmax(norms) if max(norms)!=0 else -1
     elif mode=='norm':
         norms=[norm(v[i]) if alive[i] else 0 for i in range(len(v))]
-        r=random.random()*sum(norms)
-        return np.argmin((np.cumsum(norms)-r)[np.cumsum(norms)-r>0]) if max(norms)!=0 else -1
-
+        if max(norms)!=0:
+            r=random.random()*sum(norms)
+            cumsum_norms=np.cumsum(norms)
+            cumsum_norms[cumsum_norms-r<0]=float('Inf')
+            pivot=np.argmin(cumsum_norms)
+        else:
+            pivot=-1
+    elif mode=='coloring':
+        if sum(alive)==0:
+            pivot=-1
+        elif max(np.abs(x[alive]))==0:
+            pivot=random.choice(np.arange(len(x))[alive])
+        else:
+            coloring_values=np.abs(x)
+            coloring_values[~alive]=0
+            r=random.random()*sum(coloring_values)
+            cumsum_col=np.cumsum(coloring_values)
+            cumsum_col[cumsum_col-r<0]=float('Inf')
+            pivot=np.argmin(cumsum_col)
+    elif mode=='max_coloring':
+        if sum(alive)==0:
+            pivot=-1
+        elif max(np.abs(x[alive]))==0:
+            pivot=random.choice(np.arange(len(x))[alive])
+        else:
+            coloring_values=np.abs(x)
+            coloring_values[~alive]=0
+            pivot=np.argmax(coloring_values)
     else:
-        return -1
+        print('Unknown mode of pivot choice: aborting.')
+        pivot=None
+    if debug:
+        print(f'Pivot chosen: {pivot}')
+    return pivot
 
-def next_direction(p,v,x,a,b,alive,old_alive_and_not_pivot,basis,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=True):
+def next_direction(p,v,x,a,b,alive,old_alive_and_not_pivot,basis,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False):
     u=np.zeros(len(v))
     u[p]=1
     B=np.matmul(np.transpose(np.vstack(tuple([e for e in v]))),np.vstack(tuple([e for e in basis])).T)#is v already a list ? If so we can simplify syntax here

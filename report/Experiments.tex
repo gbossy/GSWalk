@@ -19,9 +19,10 @@
 \usepackage{indentfirst}
 \usepackage{pgf,tikz,pgfplots}
 
+\DeclareMathOperator{\Span}{span}
 
 \DeclareMathAlphabet{\mymathbb}{U}{BOONDOX-ds}{m}{n}
-\usepackage[linesnumbered,vlined,boxruled]{algorithm2e}%ruled in 1st param
+\usepackage[linesnumbered,boxruled]{algorithm2e}%ruled in 1st param
 \pgfplotsset{compat=1.15}
 \usepackage{mathrsfs}
 \usetikzlibrary{arrows}
@@ -50,13 +51,17 @@
 %say that vectors are sampled uniformly everytime we talk about a ball
 
 \section{Introduction}
+
 \section{The Algorithm}
+%Define v_perp A_i etc
+The algorithm will take as input $\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$, and an initial coloring $\textbf{z}_0\in[-1,1]^n$. It will consist of $n$ time steps. At the end of time step $t$, we obtain a fractional coloring $\textbf{z}_t\in[-1,1]^n$. An element $i \in [n]$ is said to be \textit{alive} at time $t$ if $|\textbf{z}_{t-1}(i)|<1$, and \textit{fixed} otherwise. Let $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$. The \textit{pivot} $n(t)$ is an element that is alive at time $t$, which can for example be chosen randomly or as the largest indexed element, among the elements that are still alive. We define the set $V_t$ as $\Span\{\textbf{v}_i:i\in A_t,i\not=n(t)\}$. We denote by $\Pi_{V_t^\perp}$ the projection operator on $V_t^\perp$. Finally, we will need $\textbf{v}^{\perp}(t)=\Pi_{V_t^\perp}(\textbf{v}_{n(t)})$ as the projection of the pivot vector over all alive vectors. We are now ready to discover the actual pseudocode of the algorithm.
 \begin{algorithm}[H]
 {\fontsize{10}{12}
-
+\caption{The Gram-Schmidt Walk by \cite{blues}}
     \SetKwInOut{Input}{Input}
     \SetKwInOut{Output}{Output}
-    \Input{$\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$ with $\ell_2$ norm  at most 1, an initial coloring $\textbf{z}_0\in[-1,1]^n$}
+    \Input{$\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$%with $\ell_2$ norm  at most 1
+, an initial coloring $\textbf{z}_0\in[-1,1]^n$}
     \Output{a coloring $\textbf{z}_n \in \{-1,1\}^n$}
    $A_1=\{i\in[n]:|\textbf{z}_0(i)|<1\}$, $n(1) = \max \{i \in A_1\}$ and $t=1$.\\
     \While{$A_t\not=\emptyset$}{
@@ -81,9 +86,54 @@
     \label{walk}
     }%
     \end{algorithm}
-%Explain each step in detal, why we want a martingale, why we choose that direction.
+Throughout the text, we will refer to this algorithm as the GSW. There is also a variant which always choose the delta with the smallest absolute value instead of being a martingale, which we will denote as the Deterministic Gram-Schmidt Walk, or DGSW. 
+
+On can describe the algorithm as a walk: We start at a certain coloring, and at each time step we choose a direction and a length to move, then move, and repeat until we reach a vertex of the hypercube.
+
+%The interesting part is how to choose the direction and length of the move in a smart way to stay as balanced as possible. Defining $v_\perp$ as the least we will move while pushing towards coloring the pivot, it then follows that we want to push as much as possible in that direction until an element gets colored, and our $v_\perp$ thus changes.
+
+\subsection{Observations}
+According to the choice of $\delta_t$, it is clear that at least one element gets frozen at each time step as $\delta_t$ is maximal such that $z_t+\delta_tu_t\in[-1,1]^n$. Thus the GSW algorithm runs in at most $n$ iterations. If we chose $\delta_t$ according to some more complicated distribution, it wouldn't be possible guarantee a coloration per time step and the algorithm would lose most of its appeal. Additionally, the update direction depends on the elements that are alive. Thus if they do not change between two time steps, the update direction would not change and we would just keep moving along the same line until we hit a border, which is why choosing one of the two maximal valid lengths, $\delta_+$ or $\delta_-$, is the best method to choose the length of the move.
+
+We can see that
+$$\mathbb{E}[\delta_t \mid \delta_t^-, \delta_t^+] = \delta_t^+ \cdot \frac{-\delta_t^-}{\delta_t^+-\delta_t^-} + \delta_t^- \frac{\delta_t^+}{\delta_t^+-\delta_t^-} =0$$
+so the choice of delta and thus the sequence of fractional coloring produced by the algorithm before its termination is a martingale. This gives a sort of unbiasedness to the algorithm which is desirable when dividing elements into groups. It also means that we can tune the final outcome through the starting coloring.
+
+One can see that $\textbf{v}^\perp _t$ is simply the last vector of the Gram-Schmidt orthogonalization of the ordered sequence of vectors $(\textbf{v}_i)_{i\in A_t}$. This is where the name of the algorithm comes from.
+
+It is important to notice that $\textbf{v}^{\perp}_t$ depends on $t$ and not just on $\textbf{v}_{n(t)}$, as $A_t$ can change while the pivot $n(t)$ stays the same.
+
+The update direction $\textbf{u}_t$ satisfying our conditions always exists because
+\begin{align*}
+        \textbf{v}^\perp_t = \textbf{v}_{n(t)} + \sum_{i \in A_t \setminus \{n(t)\}} \textbf{u}_t(i)\textbf{v}_i\\
+        \sum_{i \in A_t \setminus \{n(t)\}} \textbf{u}_t(i)\textbf{v}_i = -(\textbf{v}_{n(t)} - \textbf{v}^\perp_t) \in V_t
+\end{align*}
+
+The vector $\textbf{u}_t$ is defined with $\textbf{u}_t(i)=0$ if $i$ is frozen, $\textbf{u}_t(n(t))=1$ and for the rest of the indices we have that :
+\begin{align*}
+\textbf{v}^\perp(t) &= \textbf{v}_{n(t)} + \sum_{i \in A_t \setminus \{n(t)\}} \textbf{u}_t(i)\textbf{v}_i\\
+\Leftrightarrow \textbf{v}^\perp(t) &= 1 \cdot \textbf{v}_{n(t)} + \sum_{i \in A_t \setminus \{n(t)\}} \textbf{u}_t(i)\textbf{v}_i + \sum_{i \notin A_t} 0 \cdot \textbf{v}_i\\
+\Leftrightarrow \textbf{v}^\perp(t) &= \sum_{i=1}^n \textbf{u}_t(i)\textbf{v}_i
+\end{align*}
+
+$\textbf{v}^\perp_t$ will correspond to the direction that the output of the random walk will move in during time step t, ie if the matrix $\textbf{M}$ contains the input vectors as columns, $\textbf{v}^\perp_t = \textbf{Mu}_t$. So the algorithm is greedily optimal in the sense that the update direction is trying to add as little discrepancy as possible while moving towards a vertex of the hypercube.
+
+$\textbf{u}_t = \arg\min_{\textbf{u} \in U} \|\textbf{Mu}\|$ where $U$ is the set of vectors in $\mathbb{R}^n$ such that $\textbf{u}(i) = 0 , i \not\in A_t$ and $\textbf{u}(n(t))=1$. This means that one can completely forget about $v_\perp$ and system solving and just use least square at each step to find the coordinates of the update directions that aren't alive or the pivot through the following formula $$u(A_t\setminus\{n(t)\})=\arg\min_u\|v_{n(t)}+\sum_{i\not\in A_t\setminus\{n(t)\}}u(i)v_i\|^2=(M_t^TM_t)^{-1}M_t^Tv_{n(t)}$$ where $M_t$ is the matrix containing all vectors that are alive but not the pvot as columns. In some case, when $v_\perp=\textbf{0}$ there are infinitely many soltions that minimize our objective function, so it would be interesting to add some conditions or do some quadratic programming to try to get a $u$ that has some desirable properties.
+
+\subsection{Examples}
+%Explain each step in detail, why we want a martingale, why we choose that direction.
 %Give graphs of outputs and discuss the subgaussianity results
 \section{Generalizing to any hyperparallelepiped}
+The idea is to allow the algorithm to sample coloring not only on the hypercube $[-1,1]^n$, but also on any set $b_1,\dots, b_n$ spanned by $n$ linearly independent vectors in $\mathbb{R}^n$. It then won't be a coloring per se but just a linear combination of the vectors with some coefficients corresponding to a vertex of the hyperparallelepiped formed by the basis vectors. We will still denote it by the term coloring for clarity reasons.
+
+To do so, we have to adapt the algorithm at several points. Firstly, an element $k$ associated to the basis vector $b_k$ should be alive only if the current coloring is not on one of the 2 facets such that when expressed in the basis $b_1,\dots,b_n$, the $k$th coordinate is -1 or 1. 
+
+Secondly, choosing the update direction is then different as we need to stay orthogonal from every fixed vector, but these vectors don't correspond to coordinates anymore.
+
+Thirdly, the computation of the two potential $\delta$ is different as well for some similar reasons.
+
+All these issues can be solved via some basis changes in the right spots and the modified algorithm is very similar, and should work exactly the same way when given the orthonormal canonical basis of $\mathbb{R}^n$.
+
 %Explain the changes, give pseudocode, give outputs.
 \section{Generalizing to more than two groups}
 Discrepancy minimization is generally set in a 2-group paradigm, but it could be interesting to generalize the GSW to separate into more than 2 groups. For example, if one wanted to separate $n$ vectors in 3 groups, the GSW could first be used to separate into groups $G_+,G_-$ such that $\sum_{v\in G_+}v-2\cdot\sum_{v\in G_-}v\approx \textbf{0}$, by starting at $x_0=(1/3,1/3,\dots,1/3)\in\mathbb{R}^n$. Then the group $G_+$ could be again inputed into the GSW to separate it into $G_{++}$ and $G_{+-}$, and we would expect $G_-,G_{++} and G_{+-}$ to be roughly balanced mutually but also all together.
@@ -176,7 +226,7 @@ I would expect the norms not to affect the balance of the assignment, as multipl
 \subsection{Does norm affect when a vector is colored ?}\label{norm_affect_when}
 The expected heuristic would have been that bigger vectors are colored earlier and the algorithm then colors the smaller ones to minimize discrepancy as that is what I'd instinctively do. It turns out that the algorithm actually does the reverse and colors the smaller vectors earlier than the bigger ones.
 
-We performed two experiments to observe this behavior. In both experiments, we have vectors $v_1,\dots,v_200$ of increasing norm and observe how close the coloring order is to $\mathcal{R}=\{200,199,$\dots$,1\}$. To do so, if $\mathcal{O}$ is the observed order, we look at the quantity 
+We performed two experiments to observe this behavior. In both experiments, we have vectors $v_1,\dots,v_{200}$ of increasing norm and observe how close the coloring order is to $\mathcal{R}=\{200,199,$\dots$,1\}$. To do so, if $\mathcal{O}$ is the observed order, we look at the quantity 
 \begin{equation}
 \Delta_{o}=\sum_{i=1}^{200}|\mathcal{R}_i-\mathcal{O}_i|.
 \label{orderdistance}
@@ -211,9 +261,9 @@ One such idea is to force the pivot to be the largest norm vector, hen, when $v_
 
 Another variant that works but only in this trivial example and not in slightly more complicated examples with for examples 2 groups of vectors is to just force the largest alive vector to be the pivot at every step. This is just a product of the solution of the least squares we're choosing as there are infinitely many that wouldn't work.
 
-A third variant that might help is to do quadratic programming instead of simple least squares when $v_\perp=\textbf{0}$. This way, we can force the quadratic program to minimize both $\|Bu\|$ but also $\|u\|$. This could be achieved by adding a line of 1's to the matrix $B$ containing all input vectors as column, and adding as conditions that the chosen $u$ must have a 1 in the pivot coordinate and 0s in already colored coordinates. Then if the $u$ chosen through this quadratic program doesn't yield $Bu=\textbf{0}$, we discard it and compute $u$ through the usual method. This technique coupled with choosing the longest alive vector as pivot actually solves trivial adversarial cases, and doesn't modify too much the algorithm.
+A third variant that might help is to do quadratic programming instead of simple least squares when $v_\perp=\textbf{0}$. This way, we can force the quadratic program to minimize both $\|Bu\|$ but also $\|u\|$. This could be achieved by adding a line of 1's to the matrix $B$ containing all input vectors as column, and adding as conditions that the chosen $u$ must have a 1 in the pivot coordinate and 0s in already colored coordinates. Then if the $u$ chosen through this quadratic program doesn't yield $Bu=\textbf{0}$, we discard it and compute $u$ through the usual method. This technique coupled with choosing the longest alive vector as pivot actually solves trivial adversarial cases, and doesn't modify too much the algorithm. The only small issue is that the matrix $B^TB$ then needs to be regularized by adding some very small constant times the identity or it isn't positive definite.
 
-\subsection{Do longer vectors stay pivot for longer ?}
+\subsection{Do longer vectors stay pivot for longer ?}\label{longer_vec_pivot_longer}
 As longer vectors are colored later in the algorithm on average, one could think that they're staying as the pivot for longer. To test this hypothesis we design the following experiment.
 \subsubsection{Experiment}
 We sample 200 vectors of norm 1 in dimension 200 and multiply 100 of them by 200 (G1 with norm 1, G2 with norm 200). We then run the GSW 100 times with all these vectors as input and record for how long vectors of different norms (1 and 200) stay pivot once the become pivot.
@@ -300,8 +350,94 @@ We can see that sparse vectors are colored much earlier in the first 3 variants,
 It could also be interesting to investigate how balanced each vector group is and how noise affect this result, as this could help us discover a hidden group in a larger set. Another interesting thing would be to see how varying the relative size of the two groups affects the phenomenon. 
 %We could also just measure this for sparse vectors that do not necessarily all have 0's on the same dimensions. DONE
 
-\subsection{How often is the pivot vector colored ?}
-\subsection{Can we force the algorithm to color the pivot vector +?}
+\subsection{How often is the pivot vector colored ?}\label{pivot_colored}
+It would be interesting to know how often the pivot is colored, and whether it depends on the pivot choice rule, or just on the vector set. To do so we try a couple different choice rules and vector set and investigate.
+\subsubsection{Experiment}
+We use three pivot choice rules: the \textbf{random} (R) rule, that is the classic one where the pivot is cosen uniformly at random when a new pivot is needed, the \textbf{maximum norm} one (MN) where the pivot is always chosen as the vector that has the greatest norm among all vectors that are alive, and the \textbf{norm-proportional} (NP) rule that makes it so each vector that is alive has a probability of being picked as the next pivot that is proportional to its norm. 
+
+We use three different sets of 100 vectors in dimension 2,10 and 100, which correspond to those used in section \ref{norm_affect_when},that is the all equal norm set (AEN), the two group set (2G) where half the vectors have size 1 and the other half size $n=100$, and the incrementally growing norm set (IGN) where the vectors have respectively norms 1,2,...,100. We observe the proportion of time steps during which the pivot is colored among all time steps and try to see whether the pivot rule seems to make that proportion vary or whether it only depends on the vector set.
+
+\subsubsection{Results}
+\begin{center}
+\begin{table}[h]
+\begin{tabular}{l|lll|lll|lll}
+Dimension &\multicolumn{9}{c}{\textbf{2}}\\
+Set  & \multicolumn{3}{c}{AEN} & \multicolumn{3}{c}{2G} & \multicolumn{3}{c}{IGN} \\
+Rule &R&MN&NP&R&MN&NP&R&MN&NP\\ \hline
+GSW  &0.958&0.949&0.939&0.920&0.474&0.505&0.946&0.912&0.892\\
+DGSW  &0.976&0.969&0.952&0.944&0.504&0.509&0.971&0.940&0.914\\
+\hline
+\hline
+Dimension &\multicolumn{9}{c}{\textbf{10}}\\
+Set  & \multicolumn{3}{c}{AEN} & \multicolumn{3}{c}{2G} & \multicolumn{3}{c}{IGN} \\
+Rule &R&MN&NP&R&MN&NP&R&MN&NP\\ \hline
+GSW  &0.822&0.798&0.822&0.657&0.357&0.346&0.761&0.578&0.628 \\
+DGSW  &0.870&0.841&0.862&0.705&0.383&0.374&0.811&0.638&0.673\\
+\hline
+\hline
+Dimension &\multicolumn{9}{c}{\textbf{100}}\\
+Set  & \multicolumn{3}{c}{AEN} & \multicolumn{3}{c}{2G} & \multicolumn{3}{c}{IGN} \\
+Rule &R&MN&NP&R&MN&NP&R&MN&NP\\ \hline
+GSW  &0.532&0.527&0.537&0.434&0.438&0.420&0.463&0.362&0.421 \\
+DGSW  &0.521&0.538&0.525&0.424&0.445&0.431&0.461&0.387&0.441\\
+\end{tabular}
+\caption{Result of our experiments on how often is the pivot colored as a function of the pivot choice rule and the input vector set. Results are averaged over 100 runs of the GSW each and are proportions between 0 and 1.}
+\label{pivot_colored_results}
+\end{table}
+\end{center}
+Results are available in Table \ref{pivot_colored_results}. Notice that when using the maximum norm mode with DGSW we lose all randomness, which is probably undesirable but these were still included for completeness.
+
+The DGSW proportion all seem a little higher in the dimension 2 and 10 cases, while in dimension 100 there seems to be no significant differences. So coloring the closest point on the update direction seems to push toward coloring the pivot most of the time in smaller dimensions, but when the dimension grows this effect seems to vanish
+
+As the vectors only have 2 potential different norms that are very different in size, we would expect the 2G set to not have much difference across the maximum norm and norm-proportional pivot choice rule, and that is indeed the case.
+
+We can also see that the pivot rule does not seem to change the pivot coloring rate significantly in the AEN case.
+
+We can see on the 2G and IGN vector sets that the proportion of colored pivots is lower when using non-uniformly random pivot rules which favor longer vectors, which is consistent with the observation that longer vectors get colored later from \ref{norm_affect_when}. This is absent on the AEN vector set as the norms are all equal.
+
+Finally, the main observation seems to be that the pivot is colored more often when the dimension is small, which I currently don't have a logical explanation for.
+
+\subsection{What if we choose the pivot as a function of the fractional coloring ?}\label{pivot_coloring_rules}
+One could think of seeing the GSW as a rounding algorithm of some sort, and then, as the pivot is often colored as seen in Section \ref{pivot_colored}, we could want that the vectors closest to being colored are pivot as they're closer to being rounded. The pivot choice rule is also an interesting place to seek to optimize as it doesn't play a role inthe analysis from \cite{blues} and only plas a very minor role in section 6.2 of \cite{harshaw2018balancing}. Thus it leaves a lot of freedom that we can try to exploit to improve the GSW.
+
+\subsubsection{Experiment}\label{pivot_colored_coloring_rules}
+We first reproduce the experiment in Section \ref{pivot_colored} but with 2 new pivot choice rules: the \textbf{maximum absolute coloring} (MAC) rule that chooses as pivot the alive vector that is closest to -1 or 1 and separates ties uniformly randomly, and the \textbf{coloring proportional} (CP) rule that chooses the pivot according to a distribution such that the probability that an alive vector is chosen as the pivot is proportional to the absolute value of its current fractional coloring value, and choses uniformly randomly if the fractional coloring value of every alive vector is 0.
+
+We would expect these methods to have higher pivot-coloring rates as the previous ones, as they're literally choosing elements that are more likely than average to be colored in the next step.
+\subsubsection{Results}
+\begin{center}
+\begin{table}[h]
+\begin{tabular}{l|ll|ll|ll}
+Dimension &\multicolumn{6}{c}{\textbf{2}}\\
+Set  & \multicolumn{2}{c}{AEN} & \multicolumn{2}{c}{2G} & \multicolumn{2}{c}{IGN} \\
+Rule &MAC&CP&MAC&CP&MAC&CP\\ \hline
+GSW  &0.950&0.945&0.590&0.550&0.939&0.900\\
+DGSW  &0.965&0.968&0.600&0.566&0.954&0.927\\
+\hline
+\hline
+Dimension &\multicolumn{6}{c}{\textbf{10}}\\
+Set  & \multicolumn{2}{c}{AEN} & \multicolumn{2}{c}{2G} & \multicolumn{2}{c}{IGN} \\
+Rule &MAC&CP&MAC&CP&MAC&CP\\ \hline
+GSW  &0.889&0.840&0.406&0.386&0.758&0.711\\
+DGSW  &0.930&0.887&0.444&0.419&0.798&0.769\\
+\hline
+\hline
+Dimension &\multicolumn{6}{c}{\textbf{100}}\\
+Set  & \multicolumn{2}{c}{AEN} & \multicolumn{2}{c}{2G} & \multicolumn{2}{c}{IGN} \\
+Rule &MAC&CP&MAC&CP&MAC&CP\\ \hline
+GSW  &0.834&0.595&0.697&0.532&0.800&0.535\\
+DGSW  &0.884&0.623&0.722&0.542&0.825&0.544\\
+\end{tabular}
+\caption{Result of our experiments on how often is the pivot colored as a function of the pivot choice rule and the input vector set, now with coloring-dependent pivot choice rules. Results are averaged over 100 runs of the GSW each and are proportions between 0 and 1.}
+\label{pivot_colored_coloring_rules_results}
+\end{table}
+\end{center}
+Results are visible in Table \ref{pivot_colored_coloring_rules_results}. We can see that as predicted, the pivot coloring rates are higher in this experiment than in section \ref{pivot_colored}, but they actually aren't for the 2 groups (2G) vector set using the random pivot. One potential explanation is that the longer vectors are often close to being colored but still harder to color than the small ones despite that, where the random pivot rule actually chooses a smaller vector 50\% of the time. 
+
+For dimension 100 we see that the maximum absolute coloring rule actually yields a much higher pivot coloring rate than its proportional variant, which could be an indication that the fractional coloring become less sure, that is closer to 0 on average, the higher the dimension goes.
+
+We can also notice that the DGSW leads to a higher coloring rate, which makes sense as we choose a pivot that's close to being colored and the DGSW will thus finish coloring it more often that the classical GSW.
+\subsection{Can we force the algorithm to color the pivot vector ?}
 %\subsection{Can we make the algorithm faster with some clever factorization ?}
 \newpage
 %\appendix
