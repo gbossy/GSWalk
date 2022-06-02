@@ -19,6 +19,20 @@
 \usepackage{indentfirst}
 \usepackage{pgf,tikz,pgfplots}
 
+%to include pdf plots
+\usepackage{pdfpages}
+
+%To do loops
+\usepackage{multido}
+
+%to include plots generated in python
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\DeclareUnicodeCharacter{2212}{−}
+\usepgfplotslibrary{groupplots,dateplot}
+\usetikzlibrary{patterns,shapes.arrows}
+\pgfplotsset{compat=newest}
+
 \DeclareMathOperator{\Span}{span}
 
 \DeclareMathAlphabet{\mymathbb}{U}{BOONDOX-ds}{m}{n}
@@ -121,8 +135,25 @@ $\textbf{v}^\perp_t$ will correspond to the direction that the output of the ran
 $\textbf{u}_t = \arg\min_{\textbf{u} \in U} \|\textbf{Mu}\|$ where $U$ is the set of vectors in $\mathbb{R}^n$ such that $\textbf{u}(i) = 0 , i \not\in A_t$ and $\textbf{u}(n(t))=1$. This means that one can completely forget about $v_\perp$ and system solving and just use least square at each step to find the coordinates of the update directions that aren't alive or the pivot through the following formula $$u(A_t\setminus\{n(t)\})=\arg\min_u\|v_{n(t)}+\sum_{i\not\in A_t\setminus\{n(t)\}}u(i)v_i\|^2=(M_t^TM_t)^{-1}M_t^Tv_{n(t)}$$ where $M_t$ is the matrix containing all vectors that are alive but not the pvot as columns. In some case, when $v_\perp=\textbf{0}$ there are infinitely many soltions that minimize our objective function, so it would be interesting to add some conditions or do some quadratic programming to try to get a $u$ that has some desirable properties.
 
 \subsection{Examples}
-%Explain each step in detail, why we want a martingale, why we choose that direction.
-%Give graphs of outputs and discuss the subgaussianity results
+%One in 3d, then the graph with all kind of different outputs on it
+\begin{figure}[h]
+\include{4types_3}
+\caption{Plot of ouput sum of group assignments from the GSW, its input vectors, and a centered normal with $Cov=I_2$. There are 100 input vectors and 100 of each kind of point, everything is in dimension 2.}
+\label{4types_3}
+\end{figure}
+\begin{figure}[h]
+\include{4types_4}
+\caption{Plot of ouput sum of group assignments from the GSW, its input vectors, and a centered normal with $Cov=I_2$ similarly to Figure \ref{4types_3}, except we added the output sums of random group assignments for comparison. There are 100 input vectors and 100 of each kind of point, everything is in dimension 2.}
+\end{figure}
+\begin{figure}
+\newpage
+\multido{\i=0+1}{3}{
+\includegraphics[width=13cm]{3d_example/gswalkboth\i.pdf}
+}
+\caption{Example of a GSW run in with 3 vectors in 2 dimension. The left part shows the cube where the coloring is living, and the right part shows the output sum and the input vetors.}
+\label{3d_example}
+\end{figure}
+\subsection{Results}
 \section{Generalizing to any hyperparallelepiped}
 The idea is to allow the algorithm to sample coloring not only on the hypercube $[-1,1]^n$, but also on any set $b_1,\dots, b_n$ spanned by $n$ linearly independent vectors in $\mathbb{R}^n$. It then won't be a coloring per se but just a linear combination of the vectors with some coefficients corresponding to a vertex of the hyperparallelepiped formed by the basis vectors. We will still denote it by the term coloring for clarity reasons.
 
@@ -155,13 +186,13 @@ By balance of the assignment, we mean the difference between the number of 1s an
 We're interested in seeing how well does the GSW actually perform in minimizing the norm. We will compare it to the naive walk defined in \ref{}, the deterministic GSW \ref{} and the actual best computed via bruteforcing.
 
 \subsubsection{Experiment}\label{how_good_at_minimizing_disc}
-We compare the output discrepancy of GSW, DGSW, the naive walk and for some small $n$ also the best assignment found via brute forcing on all possibilities. We do this for$n=5,10,15,20$ and 40, and with $d=2^i$ for $i\in\{1,\dots,15\}$, where we sample $n$ vectors from the $d$-dimensional ball of radius 1.
+We compare the output discrepancy of GSW, DGSW, the naive walk and for some small $n$ also the best assignment found via brute forcing on all possibilities. We do this for$n=5,10,15,20$, and with $d=2^i$ for $i\in\{1,\dots,15\}$, where we sample $n$ vectors from the $d$-dimensional ball of radius 1.
 
 \subsubsection{Results}
 \begin{figure}
 \centering
-%\include{output_disc}
-\caption{}
+\include{comparative_norms_n=20_repeat=1000_max_dim=32768.0}
+\caption{Comparison of different discrepancy minimizing vectors for $n=5,10,15$ and $20$ vectors of dimension up to $2^{15}$. Results were averaged over 1000 runs.}\label{output_disc}
 \end{figure}
 Our results are visible in Figure \ref{output_disc}. We can see that GSW actually gives the worst results in terms of discrepancy minimization, but that when the dimension of the vector grows all methods seem to give similar results asymptotically. Note that we cannot say that the naive walk is just a better discrepancy-minimizing algorithm as these results would probably be different if we modified the distribution of input vectors.
 
@@ -307,24 +338,33 @@ We can see that our modifications indeed remove the late coloring. Multiplying o
 \subsection{Can we find another way of computing the update direction ?}
  As we saw that larger vectors get colored later in the process on average when using the classical algorithm, one could ask themselves how to revert this effect. Let $A$ be the matrix containing our input vectors as columns. Using a singular value decomposition, we have that $A=U\Sigma V^T$ where $U\in\mathbb{R}^{m\times m}$ and $V\in\mathbb{R}^{n\times n}$ are orthonormal and $\Sigma\in\mathbb{R}^{m\times n}$ is all zeros except for the diagonal elements which are positive singular values. Using this decomposition, we can see that $A^+=V\Sigma^+U^T$ where $\Sigma^+$ is $\Sigma^T$ except nonzero entries $\sigma_i$ are replaced by their inverse $1/\sigma_i$. But if one replaced $\Sigma^+$ by $\Sigma$, then the  matrix multiplying the pivot vector would be $A^T$ instead of $A^+$. This suggestion from Pr. Marcus turned out not to work if we want to balance the vectors, but it actually does the opposite which is very interesting. 
 
-\subsubsection{Experiment 1}
+\subsubsection{Experiment 1}\label{exp1_A_T}
 
 We sampled 200 vectors in dimension 200 in the ball of radius 1. We then ran the modified GSW algorithm where the next direction is computed via $u_t(\mathcal{A}_t\setminus\{p(t)\})=B_tv_{p(t)}$ and $u_t(p(t))=1, u_t(i)=0 \forall i\not\in\mathcal{A}_t$. Everything else is kept similar. 
 
-\subsubsection{Experiment 2}
+\subsubsection{Experiment 2}\label{exp2_A_T}
 
-We run as similar experiment as in \ref{how_good_at_minimizing_disc} except we look for the discrepancy maximizing assignment via bruteforcing and look at the naive walk trying to maximize the output norm.
+
+We run as similar experiment as in \ref{how_good_at_minimizing_disc} except we look for the discrepancy maximizing assignment via bruteforcing and look at the naive walk trying to maximize the output norm. We also do not go as high in the dimension in order for the experiment to run faster.
 
 \subsubsection{Results}
-\begin{figure}
+\begin{figure}[h]
 \centering
 \include{A_T_instead_of_lstsq_200}
-\caption{Output sums using the modified GSW and DGSW where the update direction is computed by multiplying the pivot vector by $A^T$.}
+\caption{Results of Experiment 1 (Section \ref{exp1_A_T}). Output sums using the modified GSW and DGSW where the update direction is computed by multiplying the pivot vector by $A^T$.}
 \label{A_T_instead_of_lstsq}
 \end{figure}
 The outputs are shown in the figure \ref{A_T_instead_of_lstsq}. We can see that this modification seems like it now minimizes output balance instead of maximizing it, which was surprising to me at least. This seems like it could be useful to sample from unbalanced group assignments, or to find a subset to remove to maximize something. This might be equivalent to an already known algorithm, but if not I think there are probably interesting applications of this.
 
-\subsection{Are vectors with smaller dimensionality colored at the same moment as vectors with more dimensions ?}
+\begin{figure}[h]
+\centering
+\include{comparative_norms_n=20_repeat=100_max_dim=8192.0_maximizing}
+\caption{Results of Experiment 2 (\ref{exp2_A_T}). Comparing the modified GSW and DGSW with discrepancy maximizing algorithms.}
+\label{A_T_instead_of_lstsq_2}
+\end{figure}
+We can see that using $A^T$ doesn't actually maximize the norm for small dimensions even though it seems to asymptotically do so when the dimension grows. It would be interesting to investigate the evolution of this phenomenon when $n$ grows as the output norm seems to go down then back up for $n=15$ and $20$.
+
+\subsection{Are vectors with smaller dimensionality colored at the same moment as vectors with more dimensions ?}\label{smaller_dimensionality}
 We want to know if vectors with a lot of 0's can be found among vectors that are less sparse, as that could be very interesting to solve various problems such as the planted clique. We will investigate how early they're colored on average.
 
 \subsubsection{Experiment}
@@ -347,7 +387,7 @@ DGSW&75.393&76.594&61.692&97.231&98.883&68.088
 We can see that sparse vectors are colored much earlier in the first 3 variants, and even earlier in the third variant, which might be explained also by their smaller norm relative to the non-sparse vectors. The last three variant show use that the earliness effect seems to be nearly completely linked to the fact that the sparse vector were not shuffled in the first three variants, as the sparse vectors are colored very close to the average of 100.
 
 %Additional ideas
-It could also be interesting to investigate how balanced each vector group is and how noise affect this result, as this could help us discover a hidden group in a larger set. Another interesting thing would be to see how varying the relative size of the two groups affects the phenomenon. 
+It could also be interesting to investigate how balanced each vector group is and how noise affect this result, as this could help us discover a hidden group in a larger set. Another interesting thing would be to see how varying the relative size of the two groups affects the phenomenon. Lastly, 
 %We could also just measure this for sparse vectors that do not necessarily all have 0's on the same dimensions. DONE
 
 \subsection{How often is the pivot vector colored ?}\label{pivot_colored}
@@ -439,6 +479,12 @@ For dimension 100 we see that the maximum absolute coloring rule actually yields
 We can also notice that the DGSW leads to a higher coloring rate, which makes sense as we choose a pivot that's close to being colored and the DGSW will thus finish coloring it more often that the classical GSW.
 \subsection{Can we force the algorithm to color the pivot vector ?}
 %\subsection{Can we make the algorithm faster with some clever factorization ?}
+\section{Finding structured subgroups}
+We will try several experiments aiming to identify structured subgroups hidden in sets of random vectors. The idea is that the GSW should color members of the subgroup early as they should be easier to balance, and we will look at when the GSW colors which vectors over a large number of runs of the GSW and with various sets of vector and configurations. The ideal case would be if the GSW could help us solve a problem such as the Planted Clique.
+
+This section is inspired by results such as those in section \ref{smaller_dimensionality}.
+
+\subsection{How many runs are needed to get a decent idea of when a vector is colored ?}
 \newpage
 %\appendix
 %\section{This is an appendix}
