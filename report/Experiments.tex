@@ -53,6 +53,7 @@
 \newtheorem{lemma}[theorem]{Lemma} 
 \newtheorem{claim}[theorem]{Claim}
 \newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}[theorem]{Definition}
 \newcommand{\dom}{$dom$}
 \title{Studying the Gram-Schmidt Walk}
 \author{Gaëtan Bossy, under the supervision of Adam Marcus\\Chair of Combinatorial Analysis}
@@ -65,10 +66,37 @@
 %say that vectors are sampled uniformly everytime we talk about a ball
 
 \section{Introduction}
+In 1997, polish mathematician Wojciech Banaszczyk published \textit{Balancing vectors and Gaussian measures of $n$-dimensional convex bodies}\cite{banaszczyk1998balancing} in which we can read the following theorem:
+\begin{theorem}[Banaszczyk's Theorem]
+For all convex body $K \subseteq \mathbb{R}^m$, with Gaussian measure $\gamma_m(K)\geq 1/2$, and given $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^m$, $\|\textbf{v}_i\|_2 \leq 1$ for all $i$, then there exists $ \textbf{x} \in \{-1, 1\}^n$ such that
+$$\sum_{i=1}^n \textbf{x}(i)\textbf{v}_i \in 5 \cdot K $$
+\end{theorem}
+The Gaussian measure of a body is defined as $$\gamma_m(S) = \mathbb{P}[g \in S] = \int_{y \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||y||^2/2} dy$$
+    where $g$ is a standard Gaussian random vector in $\mathbb{R}^m$, i.e. $g \sim \mathcal{N}(0, I_m)$. 
 
+The proof of this theorem was non-constructive though, but nearly 20 years later, Dadush, Garg, Lovett and Nikolov showed that in order to get a constructive algorithm, all that is needed is a subgaussian distribution sampler. 
+
+\begin{theorem}[\cite{construct}]
+Banaszczyk's Theorem (up to the constant) is equivalent to the following statement:\\
+Let $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^m$ of $\ell_2$ norm at most 1, with $\textbf{B}= (\textbf{v}_1, \dots, \textbf{v}_n) \in \mathbb{R}^{m \times n}$ and $K \subseteq \mathbb{R}^m$ a convex body  of Gaussian measure at least 1/2.
+Then, there exists $\textbf{x}_0 \in [-1,1]^n$ and there exists a distribution $D$ on $\{-1,1\}^n$, such that: 
+\begin{enumerate}
+    \item  $\textbf{B}\textbf{x}_0 = \sum_{i=1}^n \textbf{x}_0(i)\textbf{v}_i \in K$\\
+    \item  for $\textbf{x} \sim D$, $\textbf{B}(\textbf{x}-\textbf{x}_0)= \sum_{i=1}^n (\textbf{x}(i)-\textbf{x}_0(i))\textbf{v}_i$ is $\sigma$-subgaussian, for some $\sigma >0$ and if $\textbf{x}_0(i) \in \{-1, 1\}$, $\mathbb{P}[\textbf{x}(i)=\textbf{x}_0(i)]=1, \forall i$.
+    \item $\mathbb{P}_{\textbf{x} \sim D}[\sum_{i=1}^n (\textbf{x}(i)- \textbf{x}_0(i))\textbf{v}_i \in c(\sigma)K] \geq 1/2$ for some $c(\sigma)$.
+\end{enumerate}
+\end{theorem}
+In this last theorem, one can just pick $\textbf{x}_0=\textbf{0}$ because the gaussian measure forces it to be inside $K$, but finding the subgaussian distribution is far from trivial. It actually uses the minimax theorem from Von Neumann \cite{neumann1928theorie} and a result from Talagrand \cite{talagrand2005generic} on the norm of subgaussian vectors. In addition to all that, there is a complicated recentering procedure to show that the result still holds for non-symmetric bodies.
+
+A couple years later,a team including three of the previous authors, Dadush, Garg and Lovett, joined by Bansal, actually found and analysed an algorithm to succesfully sample colorings that allows us to construct the colorings described by Banaszczyk in his work from my birth year. They call this algorithm the Gram-Schmidt walk, because it uses a procedure that can remind of Gram-Schmidt Orthogonalization. 
+
+The Gram- Schmidt walk was first introduced in \cite{blues}. It was described
 \section{The Algorithm}
 %Define v_perp A_i etc
 The algorithm will take as input $\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$, and an initial coloring $\textbf{z}_0\in[-1,1]^n$. It will consist of $n$ time steps. At the end of time step $t$, we obtain a fractional coloring $\textbf{z}_t\in[-1,1]^n$. An element $i \in [n]$ is said to be \textit{alive} at time $t$ if $|\textbf{z}_{t-1}(i)|<1$, and \textit{fixed} otherwise. Let $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$. The \textit{pivot} $n(t)$ is an element that is alive at time $t$, which can for example be chosen randomly or as the largest indexed element, among the elements that are still alive. We define the set $V_t$ as $\Span\{\textbf{v}_i:i\in A_t,i\not=n(t)\}$. We denote by $\Pi_{V_t^\perp}$ the projection operator on $V_t^\perp$. Finally, we will need $\textbf{v}^{\perp}(t)=\Pi_{V_t^\perp}(\textbf{v}_{n(t)})$ as the projection of the pivot vector over all alive vectors. We are now ready to discover the actual pseudocode of the algorithm.
+
+It produces an assignment $z$ such that the corresponding vector of imbalances, also referred to as the output sum of groups, has a small norm.
+
 \begin{algorithm}[H]
 {\fontsize{10}{12}
 \caption{The Gram-Schmidt Walk by \cite{blues}}
@@ -134,7 +162,7 @@ $\textbf{v}^\perp_t$ will correspond to the direction that the output of the ran
 
 $\textbf{u}_t = \arg\min_{\textbf{u} \in U} \|\textbf{Mu}\|$ where $U$ is the set of vectors in $\mathbb{R}^n$ such that $\textbf{u}(i) = 0 , i \not\in A_t$ and $\textbf{u}(n(t))=1$. This means that one can completely forget about $v_\perp$ and system solving and just use least square at each step to find the coordinates of the update directions that aren't alive or the pivot through the following formula $$u(A_t\setminus\{n(t)\})=\arg\min_u\|v_{n(t)}+\sum_{i\not\in A_t\setminus\{n(t)\}}u(i)v_i\|^2=(M_t^TM_t)^{-1}M_t^Tv_{n(t)}$$ where $M_t$ is the matrix containing all vectors that are alive but not the pvot as columns. In some case, when $v_\perp=\textbf{0}$ there are infinitely many soltions that minimize our objective function, so it would be interesting to add some conditions or do some quadratic programming to try to get a $u$ that has some desirable properties.
 
-\subsection{Examples}
+%\subsection{Examples}
 %One in 3d, then the graph with all kind of different outputs on it
 \begin{figure}[h]
 \include{4types_3}
@@ -148,12 +176,30 @@ $\textbf{u}_t = \arg\min_{\textbf{u} \in U} \|\textbf{Mu}\|$ where $U$ is the se
 \begin{figure}
 \newpage
 \multido{\i=0+1}{3}{
-\includegraphics[width=13cm]{3d_example/gswalkboth\i.pdf}
+\includegraphics[width=12.75cm]{3d_example/gswalkboth\i.pdf}
 }
-\caption{Example of a GSW run in with 3 vectors in 2 dimension. The left part shows the cube where the coloring is living, and the right part shows the output sum and the input vetors.}
+\caption{Example of a GSW run in with 3 vectors in 2 dimension. The left part shows the cube where the coloring is living, and the right part shows the output sum and the input vectors.}
 \label{3d_example}
 \end{figure}
 \subsection{Results}
+\begin{definition}
+A random vector $\textbf{Y} \in \mathbb{R}^m$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if for all $\theta \in \mathbb{R}^m$:
+$$\mathbb{E}[e^{\langle\textbf{Y},\theta\rangle}]\leq e^{(\sigma^2/2)\|\theta\|_2^2}$$ \\
+\end{definition}
+This definition will help us give a concrete result on the balancing power of the GSW. A random vector being 1-subaussian means that it is less spread that a gaussian with covariance matrix being the identity. We can see that for the output sum of the GSW, on Figure \ref{4types_3}, it seems to indeed be the case. This was indeed proved, first for $\sigma^2=40$ in \cite{blues} and then for $\sigma^2=1$ in \cite{harshaw2019balancing}.
+\begin{theorem}[\cite{harshaw2019balancing}]
+    For $\textbf{z}$ sampled via the Gram-Schmidt walk design, we have that $\textbf{Bz}$ is subgaussian with parameter $\sigma^2=1$:$$\mathbb{E}[exp(\langle\textbf{Bz},\textbf{v}\rangle)]\leq exp(\|\textbf{v}\|^2_2/2)\quad\forall\textbf{v}\in\mathbb{R}^{n+d}$$
+\end{theorem}
+This result is necessary to prove that the GSW indeed gives a constructive algorithm for Theorem \ref{banaszczyk}, by using Theorem \ref{}. 
+%\begin{definition}
+%We say that $L\in\mathbb{R}^{n\times n}$ is bounded in the Loewner order by $M\in\mathbb{R}^{n\times n}$, also written as $L\preceq M$ if $M-L$ is positive semi-definite, that is $z^T(M-L)z\geq 0$ $\forall z\in\mathbb{R}^n$.
+%\end{definition}
+%This other result from \cite{harshaw2019balancing} gives us a bound on the covariance of the vector of imbalances, which tells us that TODO
+%\begin{theorem}[\cite{harshaw2019balancing}]
+%If all input vectors of the GSW $\textbf{v}_1,\dots,\textbf{v}_n$ have $\ell_2$ norm at most 1, then the covariance
+%matrix of the vector of imbalances $Bz$ is bounded in the Loewner order by the orthogonal projection onto the subspace spanned by the columns of $B$: $$Cov(Bz)\preceq P = B(B^TB)^\dagger B^T,$$
+%where we recall that $M^\dagger$ is the pseudoinverse of the matrix $M$.
+%\end{theorem}
 \section{Generalizing to any hyperparallelepiped}
 The idea is to allow the algorithm to sample coloring not only on the hypercube $[-1,1]^n$, but also on any set $b_1,\dots, b_n$ spanned by $n$ linearly independent vectors in $\mathbb{R}^n$. It then won't be a coloring per se but just a linear combination of the vectors with some coefficients corresponding to a vertex of the hyperparallelepiped formed by the basis vectors. We will still denote it by the term coloring for clarity reasons.
 
@@ -293,6 +339,8 @@ One such idea is to force the pivot to be the largest norm vector, hen, when $v_
 Another variant that works but only in this trivial example and not in slightly more complicated examples with for examples 2 groups of vectors is to just force the largest alive vector to be the pivot at every step. This is just a product of the solution of the least squares we're choosing as there are infinitely many that wouldn't work.
 
 A third variant that might help is to do quadratic programming instead of simple least squares when $v_\perp=\textbf{0}$. This way, we can force the quadratic program to minimize both $\|Bu\|$ but also $\|u\|$. This could be achieved by adding a line of 1's to the matrix $B$ containing all input vectors as column, and adding as conditions that the chosen $u$ must have a 1 in the pivot coordinate and 0s in already colored coordinates. Then if the $u$ chosen through this quadratic program doesn't yield $Bu=\textbf{0}$, we discard it and compute $u$ through the usual method. This technique coupled with choosing the longest alive vector as pivot actually solves trivial adversarial cases, and doesn't modify too much the algorithm. The only small issue is that the matrix $B^TB$ then needs to be regularized by adding some very small constant times the identity or it isn't positive definite.
+
+\subsection{What affects when a vector is colored other than the norm ?}
 
 \subsection{Do longer vectors stay pivot for longer ?}\label{longer_vec_pivot_longer}
 As longer vectors are colored later in the algorithm on average, one could think that they're staying as the pivot for longer. To test this hypothesis we design the following experiment.
@@ -477,14 +525,58 @@ Results are visible in Table \ref{pivot_colored_coloring_rules_results}. We can 
 For dimension 100 we see that the maximum absolute coloring rule actually yields a much higher pivot coloring rate than its proportional variant, which could be an indication that the fractional coloring become less sure, that is closer to 0 on average, the higher the dimension goes.
 
 We can also notice that the DGSW leads to a higher coloring rate, which makes sense as we choose a pivot that's close to being colored and the DGSW will thus finish coloring it more often that the classical GSW.
+
+\subsubsection{Experiment 2}\label{exp_plot_max_col}
+We sample 100 vectors of dimension 2 and run both the classical GSW with random pivot and the classical GSW with \textbf{maximum absolute coloring} (MAC) similar to Section \ref{pivot_colored_coloring_rules}. We do similarly but for the DGSW too. We do one run per variantand per starting pivot and plot the results to see whether there is some pattern and how it looks like, similarly to figure \ref{4types_3}.
+
+\subsubsection{Results 2}
+\begin{figure}[h]
+\centering
+\include{max_col_comparison}
+\caption{Results of Experiment 2 (Section \ref{exp_plot_max_col}). 100 output sums in dimension 2 using GSW, DGSW with both the random pivot rule and the maximal coloring rule.}
+\label{results_plot_max_col}
+\end{figure}
+Results are visible in Figure \ref{results_plot_max_col}. We can see that as previously, the vector of imbalance from DGSW run are slightly closer to 0 than those from GSW runs. Additionally, we can see that the MAC pivot rule seems to give us shorter vector of imbalances as well, with MAC DGSW runs being visibly closer to \textbf{0}. While this effect could be expected as we color the vectors that allow us to pick smaller deltas and thus move less away from \textbf{0}, it is actually very visible here and we will investigate it further in the next experiment.
+
+\subsubsection{Experiment 3}
+
+\subsubsection{Results 3}
+
 \subsection{Can we force the algorithm to color the pivot vector ?}
+\subsection{What makes it so a vector is colored early outside of its norm and dimensionality ?}
 %\subsection{Can we make the algorithm faster with some clever factorization ?}
 \section{Finding structured subgroups}
 We will try several experiments aiming to identify structured subgroups hidden in sets of random vectors. The idea is that the GSW should color members of the subgroup early as they should be easier to balance, and we will look at when the GSW colors which vectors over a large number of runs of the GSW and with various sets of vector and configurations. The ideal case would be if the GSW could help us solve a problem such as the Planted Clique.
 
 This section is inspired by results such as those in section \ref{smaller_dimensionality}.
 
+One problem that we would like to solve is, given $n-k$ vectors in a ball of radius 1 in some dimension $d$ and $k$ vectors in the same ball such that all their coordinates are positive, we apply a random rotation to the $k$ vectors. We would then like to use the GSW to find these vectors, by hoping that they would be colored early. We call this problem the \textbf{hidden cluster}.
+
+One way to do so would be to look for the vector that's colored the earliest on average after some number$r$ of runs, and return that vector and the $k-1$ vector that are the closest to it. There are lots of moving parameters here, including $n,k,d$ and the specific GSW variant used. We will investigate when that approach works and when it doesn't. We call this technique the \textbf{early coloring}.
+
 \subsection{How many runs are needed to get a decent idea of when a vector is colored ?}
+In order to investigate that, we created some instances of the hidden cluster with $n=200,k\in\{5,10\},d=200$. We then used our early coloring method several times with $r=200$ and saw if the results differed over 5 runs for each set. As the end results were the same for each time we ran the method independently of which run it was, we concluded that $r=200$ was enough to get a good approximation of the average coloring times. 
+
+This does not mean that the average coloring time of each vector were very close for each method run, but it means that the earliest vector was always the same.
+
+\subsection{Does the early coloring technique work ?}
+We want to know if the technique makes sense and works, so we created 50 instances of the hidden cluster with $n=200,k\in\{5,10,15\},d=200$, (so 50 for each $k$) and tried our technique with GSW, DGSW, MAC GSW and MAC DGSW, where MAC is defined in section \ref{pivot_colored_coloring_rules}. We then used our early coloring method with $r=200$ and recorded how often the technique successfully identified the hidden cluster. For DGSW with MAC which is actualy fully deterministic given the first pivot assuming random vector input, we made sure to use each of the 200 vectors as starting pivot exactly once.
+\subsubsection{Results}
+\begin{center}
+\begin{table}[h]
+\begin{tabular}{l|ll|ll|ll}
+$k$  & \multicolumn{2}{c}{5} & \multicolumn{2}{c}{10} & \multicolumn{2}{c}{15}\\
+Rule &R&MAC&R&MAC&R&MAC\\ \hline
+GSW  &0.2&0.4&0.2&0.7&0.8&0.8\\
+DGSW &0.3&0.3&0.3&0.7&0.8&0.6\\
+\end{tabular}
+\caption{Result of our experiments on the early coloring method to solve the hidden cluster problem. The results are the proportion of instances for which the early coloring method worked out of 10 runs for each of the 12 cases.}
+\label{early_coloring_method_exp1}
+\end{table}
+\end{center}
+Results are available in Table \ref{early_coloring_method_exp1}. We see that the bigger the hidden cluster, the easier it seems to be to find which is expected as the random chance of finding it is also higher. Nevertheless
+\section{Conclusion}
+
 \newpage
 %\appendix
 %\section{This is an appendix}
