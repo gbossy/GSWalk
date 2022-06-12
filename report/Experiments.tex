@@ -67,7 +67,7 @@
 
 \section{Introduction}
 In 1997, polish mathematician Wojciech Banaszczyk published \textit{Balancing vectors and Gaussian measures of $n$-dimensional convex bodies}\cite{banaszczyk1998balancing} in which we can read the following theorem:
-\begin{theorem}[Banaszczyk's Theorem]
+\begin{theorem}[Banaszczyk's Theorem]\label{banaszczyk}
 For all convex body $K \subseteq \mathbb{R}^m$, with Gaussian measure $\gamma_m(K)\geq 1/2$, and given $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^m$, $\|\textbf{v}_i\|_2 \leq 1$ for all $i$, then there exists $ \textbf{x} \in \{-1, 1\}^n$ such that
 $$\sum_{i=1}^n \textbf{x}(i)\textbf{v}_i \in 5 \cdot K $$
 \end{theorem}
@@ -76,7 +76,7 @@ The Gaussian measure of a body is defined as $$\gamma_m(S) = \mathbb{P}[g \in S]
 
 The proof of this theorem was non-constructive though, but nearly 20 years later, Dadush, Garg, Lovett and Nikolov showed that in order to get a constructive algorithm, all that is needed is a subgaussian distribution sampler. 
 
-\begin{theorem}[\cite{construct}]
+\begin{theorem}[\cite{construct}]\label{equivalence}
 Banaszczyk's Theorem (up to the constant) is equivalent to the following statement:\\
 Let $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^m$ of $\ell_2$ norm at most 1, with $\textbf{B}= (\textbf{v}_1, \dots, \textbf{v}_n) \in \mathbb{R}^{m \times n}$ and $K \subseteq \mathbb{R}^m$ a convex body  of Gaussian measure at least 1/2.
 Then, there exists $\textbf{x}_0 \in [-1,1]^n$ and there exists a distribution $D$ on $\{-1,1\}^n$, such that: 
@@ -86,16 +86,19 @@ Then, there exists $\textbf{x}_0 \in [-1,1]^n$ and there exists a distribution $
     \item $\mathbb{P}_{\textbf{x} \sim D}[\sum_{i=1}^n (\textbf{x}(i)- \textbf{x}_0(i))\textbf{v}_i \in c(\sigma)K] \geq 1/2$ for some $c(\sigma)$.
 \end{enumerate}
 \end{theorem}
-In this last theorem, one can just pick $\textbf{x}_0=\textbf{0}$ because the gaussian measure forces it to be inside $K$, but finding the subgaussian distribution is far from trivial. It actually uses the minimax theorem from Von Neumann \cite{neumann1928theorie} and a result from Talagrand \cite{talagrand2005generic} on the norm of subgaussian vectors. In addition to all that, there is a complicated recentering procedure to show that the result still holds for non-symmetric bodies.
+In this last theorem, one can just pick $\textbf{x}_0=\textbf{0}$ because the gaussian measure bound forces it to be inside $K$, but finding the subgaussian distribution is far from trivial. The proof uses the Minimax theorem from Von Neumann \cite{neumann1928theorie}, turning the choice of the distribution in a game, and a result from Talagrand \cite{talagrand2005generic} on the norm of subgaussian vectors. In addition to all that, there is a complicated recentering procedure to show that the result still holds for non-symmetric bodies.
 
-A couple years later,a team including three of the previous authors, Dadush, Garg and Lovett, joined by Bansal, actually found and analysed an algorithm to succesfully sample colorings that allows us to construct the colorings described by Banaszczyk in his work from my birth year. They call this algorithm the Gram-Schmidt walk, because it uses a procedure that can remind of Gram-Schmidt Orthogonalization. 
+A couple years later, a team including three of the previous authors, Dadush, Garg and Lovett, joined by Bansal this time, actually found and analysed an algorithm to succesfully sample colorings that allows us to construct the colorings described by Banaszczyk in his work from my birth year. They call this algorithm the Gram-Schmidt walk, because it uses a procedure that can remind of Gram-Schmidt Orthogonalization. 
 
-The Gram- Schmidt walk was first introduced in \cite{blues}. It was described
+The Gram- Schmidt walk was first introduced in \cite{blues}. It was described as a way to get a constructive algorithm for Theorem \ref{ banaszczyk}, but was later also used for experiment design by Spielman, Harshaw, Zhang and Sävje in \cite{harshaw2019balancing}. They use the balancing power of the algorithm to explicitly navigate the tradeoff between experiment unit covariate balance and robustness of the design. They improved the constant in the subgaussianity result and proved several other results which let them document the expected behavior of their design.
+
+In this work, we will try to understand the algorithm, think about how to modify it to achieve different goals, and what other things we could use it for.
+
 \section{The Algorithm}
 %Define v_perp A_i etc
 The algorithm will take as input $\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$, and an initial coloring $\textbf{z}_0\in[-1,1]^n$. It will consist of $n$ time steps. At the end of time step $t$, we obtain a fractional coloring $\textbf{z}_t\in[-1,1]^n$. An element $i \in [n]$ is said to be \textit{alive} at time $t$ if $|\textbf{z}_{t-1}(i)|<1$, and \textit{fixed} otherwise. Let $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$. The \textit{pivot} $n(t)$ is an element that is alive at time $t$, which can for example be chosen randomly or as the largest indexed element, among the elements that are still alive. We define the set $V_t$ as $\Span\{\textbf{v}_i:i\in A_t,i\not=n(t)\}$. We denote by $\Pi_{V_t^\perp}$ the projection operator on $V_t^\perp$. Finally, we will need $\textbf{v}^{\perp}(t)=\Pi_{V_t^\perp}(\textbf{v}_{n(t)})$ as the projection of the pivot vector over all alive vectors. We are now ready to discover the actual pseudocode of the algorithm.
 
-It produces an assignment $z$ such that the corresponding vector of imbalances, also referred to as the output sum of groups, has a small norm.
+It produces an assignment $z$ such that the corresponding vector of imbalances, also referred to as the output sum of groups, has a small norm. Another way to see it is that it divides the vectors in two groups such that the sum of the vectors in each group are pretty close.
 
 \begin{algorithm}[H]
 {\fontsize{10}{12}
@@ -174,12 +177,14 @@ $\textbf{u}_t = \arg\min_{\textbf{u} \in U} \|\textbf{Mu}\|$ where $U$ is the se
 \caption{Plot of ouput sum of group assignments from the GSW, its input vectors, and a centered normal with $Cov=I_2$ similarly to Figure \ref{4types_3}, except we added the output sums of random group assignments for comparison. There are 100 input vectors and 100 of each kind of point, everything is in dimension 2.}
 \end{figure}
 \begin{figure}
+\begin{center}
 \newpage
 \multido{\i=0+1}{3}{
-\includegraphics[width=12.75cm]{3d_example/gswalkboth\i.pdf}
+\includegraphics[width=12.7cm]{3d_example/gswalkboth\i.pdf}
 }
 \caption{Example of a GSW run in with 3 vectors in 2 dimension. The left part shows the cube where the coloring is living, and the right part shows the output sum and the input vectors.}
 \label{3d_example}
+\end{center}
 \end{figure}
 \subsection{Results}
 \begin{definition}
@@ -190,7 +195,7 @@ This definition will help us give a concrete result on the balancing power of th
 \begin{theorem}[\cite{harshaw2019balancing}]
     For $\textbf{z}$ sampled via the Gram-Schmidt walk design, we have that $\textbf{Bz}$ is subgaussian with parameter $\sigma^2=1$:$$\mathbb{E}[exp(\langle\textbf{Bz},\textbf{v}\rangle)]\leq exp(\|\textbf{v}\|^2_2/2)\quad\forall\textbf{v}\in\mathbb{R}^{n+d}$$
 \end{theorem}
-This result is necessary to prove that the GSW indeed gives a constructive algorithm for Theorem \ref{banaszczyk}, by using Theorem \ref{}. 
+This result is necessary to prove that the GSW indeed gives a constructive algorithm for Theorem \ref{banaszczyk}, by using Theorem \ref{equivalence}. 
 %\begin{definition}
 %We say that $L\in\mathbb{R}^{n\times n}$ is bounded in the Loewner order by $M\in\mathbb{R}^{n\times n}$, also written as $L\preceq M$ if $M-L$ is positive semi-definite, that is $z^T(M-L)z\geq 0$ $\forall z\in\mathbb{R}^n$.
 %\end{definition}
@@ -200,6 +205,51 @@ This result is necessary to prove that the GSW indeed gives a constructive algor
 %matrix of the vector of imbalances $Bz$ is bounded in the Loewner order by the orthogonal projection onto the subspace spanned by the columns of $B$: $$Cov(Bz)\preceq P = B(B^TB)^\dagger B^T,$$
 %where we recall that $M^\dagger$ is the pseudoinverse of the matrix $M$.
 %\end{theorem}
+\section{Fast computations}
+Thanks to an original idea from professor Marcus, one can fasten the GSW from the trivial implementation which takes time $O(n^3d)$ down to $O(n^2d)$, similarly to what was done in \cite{harshaw2018balancing} except the proofs are easier. The basic idea is similar. At the beginning of a GSW run, we compute some matrices and then during each step of the algorithm, we use only rank one updates to maintain them and derive the update direction from them at each iteration.
+
+
+
+For some set $S\subset\{1,\dots,n\}$, let $I_S\in\mathbb{R}^{n\times n}$ be the diagonal $n\times n$ matrix with $I_S(i,i) =1$ if $i\in S$ and $0$ otherwise, and $B_S\in\mathbb{R}^{d\times n}$ be $BI_S$ where $B$ is as previously the matrix containing the input vectors as columns. We define $C_S\in\mathbb{R}^{n\times d}$ to be such that $C_SB_S=I_S$ and if $i\not\in S$, the $i$th row of $C_S$ is $0$. Finally, $D_S\in\mathbb{R}^{n\times n}$ is $C_SC_S^T$.
+
+This technique necessitates that the dimension of the space spanned by the input vectors is at most the dimension $d$ of the input vectors, as otherwise $C_S$ doesn't exist. %For the other case, one could produce another technique.
+
+Here are the rank one update that let us compute ou matrix for some $S'=S\setminus\{k\}$.
+\begin{lemma}\label{update_lemma}
+For $k\in S$, let 
+\begin{itemize}
+\item $c_k\in\mathbb{R}^{1\times n}$ be the $k$th row of $C_S$
+\item $d_k\in\mathbb{R}^{1\times d}$ be the $k$th row of $D_S$
+\item $S'= S\setminus\{k\}$
+\end{itemize}
+Then $C_{S'}=C_S-\frac{1}{d_k(k)}d_k^Tc_k$ and $D_{S'}=D_S-\frac{1}{d_k(k)}d_k^Td_k$.
+\end{lemma}
+\begin{proof}
+For the first part, we have that\begin{align*}
+\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)B_{S'}&=\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)B_{S}I_{S'}\\
+&=C_SB_SI_{S'}-\frac{1}{d_k(k)}d_k^Tc_kB_{S}I_{S'}\\
+&=I_{S'}-\frac{1}{d_k(k)}d_k^Te_kI_{S'}\\
+&=I_{S'}-\frac{1}{d_k(k)}d_k^T\textbf{0}\\
+&=I_{S'}\end{align*}
+Thus we just need to show that the rows of $C_S-\frac{1}{d_k(k)}d_k^Tc_k$ not in $S'$ are 0. As $\frac{1}{d_k(k)}d_k(k)=1$, we have that the $k$th row of $C_S-\frac{1}{d_k(k)}d_k^Tc_k$ is indeed 0. Lastly, as $D_S=C_SC_S^T$, we have that $i\not\in S\Rightarrow d_k(i)=0$ thus all the rows whose indices aren't in $S$ indeed do stay 0.
+
+For the second part, we can see that \begin{align*}
+D_{S'}&=C_{S'}C_{S'}^T\\
+&=\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)^T\\
+&=\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)\left(C_S^T-\frac{1}{d_k(k)}c_k^Td_k\right)\\
+&=C_SC_S^T-\frac{1}{d_k(k)}C_Sc_k^Td_k-\frac{1}{d_k(k)}d_k^Tc_kC_S^T+\frac{1}{d_k(k)^2}d_k^Tc_kc_k^Td_k\\
+&=D_S-\frac{1}{d_k(k)}d_k^Td_k-\frac{1}{d_k(k)}d_k^Td_k+\frac{1}{d_k(k)}d_k^Td_k\\
+&=D_S-\frac{1}{d_k(k)}d_k^Td_k\end{align*}\end{proof}
+Now let's see why this is useful, that is, how to compute $v^\perp(t)$ and $u_t$ from these matrices.
+\begin{lemma}
+Assume we're currently in a step of the GSW where the active vectors are $A_t=\{v_s:s\in S\}$, and $v_k\in A_t$ is the pivot. If $d_k$ and $c_k$ are defined similarly as in Lemma \ref{update_lemma}, we have that $$v^\perp(t)=\frac{c_k}{\|c_k\|^2}\textrm{ and }u_t=\frac{d_k}{d_k(k)}.$$
+\end{lemma}
+\begin{proof}
+$c_k$ is perpendicular to all vectors but $v_k$ as $c_kv_i^T=0$ $\forall i\not=k$. Thus we just need to make sure
+\end{proof}
+These lemma mean that once we have computed $C_S$ and $D_S$ at the beginning of the GSW in time $O(n^2d+n^3)$, we can update them in time $O(nd+n^2)$ and store them with a similar quantity of memory, resultng in a total time of running of $O(n^2(d+n))$ as computing $\delta_t$ and updating the coloring takes $O(n)$ time.
+
+
 \section{Generalizing to any hyperparallelepiped}
 The idea is to allow the algorithm to sample coloring not only on the hypercube $[-1,1]^n$, but also on any set $b_1,\dots, b_n$ spanned by $n$ linearly independent vectors in $\mathbb{R}^n$. It then won't be a coloring per se but just a linear combination of the vectors with some coefficients corresponding to a vertex of the hyperparallelepiped formed by the basis vectors. We will still denote it by the term coloring for clarity reasons.
 
@@ -237,7 +287,7 @@ We compare the output discrepancy of GSW, DGSW, the naive walk and for some smal
 \subsubsection{Results}
 \begin{figure}
 \centering
-\include{comparative_norms_n=20_repeat=1000_max_dim=32768.0}
+\include{comparative_norms_n=80_repeat=1000_max_dim=32768.0}
 \caption{Comparison of different discrepancy minimizing vectors for $n=5,10,15$ and $20$ vectors of dimension up to $2^{15}$. Results were averaged over 1000 runs.}\label{output_disc}
 \end{figure}
 Our results are visible in Figure \ref{output_disc}. We can see that GSW actually gives the worst results in terms of discrepancy minimization, but that when the dimension of the vector grows all methods seem to give similar results asymptotically. Note that we cannot say that the naive walk is just a better discrepancy-minimizing algorithm as these results would probably be different if we modified the distribution of input vectors.
@@ -532,7 +582,7 @@ We sample 100 vectors of dimension 2 and run both the classical GSW with random 
 \subsubsection{Results 2}
 \begin{figure}[h]
 \centering
-\include{max_col_comparison}
+\include{comparative_norms_n=80_repeat=1000_max_dim=32768.0_max_col}
 \caption{Results of Experiment 2 (Section \ref{exp_plot_max_col}). 100 output sums in dimension 2 using GSW, DGSW with both the random pivot rule and the maximal coloring rule.}
 \label{results_plot_max_col}
 \end{figure}
@@ -567,16 +617,22 @@ We want to know if the technique makes sense and works, so we created 50 instanc
 \begin{tabular}{l|ll|ll|ll}
 $k$  & \multicolumn{2}{c}{5} & \multicolumn{2}{c}{10} & \multicolumn{2}{c}{15}\\
 Rule &R&MAC&R&MAC&R&MAC\\ \hline
-GSW  &0.2&0.4&0.2&0.7&0.8&0.8\\
-DGSW &0.3&0.3&0.3&0.7&0.8&0.6\\
+GSW  &0.26&0.28&0.34&0.52&0.66&0.7\\
+DGSW &0.2&0.2&0.54&0.52&0.74&0.62\\
 \end{tabular}
-\caption{Result of our experiments on the early coloring method to solve the hidden cluster problem. The results are the proportion of instances for which the early coloring method worked out of 10 runs for each of the 12 cases.}
+\caption{Result of our experiments on the early coloring method to solve the hidden cluster problem. The results are the proportion of instances for which the early coloring method worked out of 50 runs for each of the 12 cases.}
 \label{early_coloring_method_exp1}
 \end{table}
 \end{center}
-Results are available in Table \ref{early_coloring_method_exp1}. We see that the bigger the hidden cluster, the easier it seems to be to find which is expected as the random chance of finding it is also higher. Nevertheless
-\section{Conclusion}
+Results are available in Table \ref{early_coloring_method_exp1}. We see that the bigger the hidden cluster, the easier it seems to be to find which is expected as the random chance of finding it is also higher. Nevertheless for each dimension the proportion of runs in which the method works is way higher than the proportion of points that are part of the hidden cluster, so the method seems effective. Using the MAC pivot rule seems to help, but that is hard to tell for certain. On the other hand, the DGSW variant produces results that are roughly similar to the original GSW variant.
 
+\subsection{Can we stop each run earlier ?}
+As we're only interested in which element is colored the earliest on average, we could try stopping early for example between the 50th and 100th time step in order to gain time in the process.
+
+\subsection{Can we use even less runs for our average ?}
+
+\section{Conclusion}
+%using the algorithm in machine learning to balance training and testing set, maybe balance batches in deep learning but probably too computationally expensive.
 \newpage
 %\appendix
 %\section{This is an appendix}
