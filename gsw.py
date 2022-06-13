@@ -32,7 +32,7 @@ def timer(func):
         value = func(*args, **kwargs)
         end_time = time.perf_counter()
         run_time = end_time - start_time
-        if True:
+        if False:
             print("Finished {} in {} secs".format(repr(func.__name__), round(run_time, 3)))
         return value
 
@@ -140,6 +140,11 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
             v_perp=B[:,p]
     else:
         v_perp=B[:,p]
+    #print(B_t)
+    #v_perp_maybe=np.linalg.inv(B_t.T.dot(B_t)).dot(B_t.T)[p,:]
+    #print(v_perp-v_perp_maybe)
+    #v_perp_maybe/=norm(v_perp_maybe)**2
+    #print(v_perp-v_perp_maybe)
     #if len(v)<=len(v[0]):
         #B_mat=B.copy()
         #B_mat[:,~alive]=0
@@ -184,7 +189,7 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     try:
                         for k in indices_to_update:
                             length=X_t.shape[0]
-                            X_T_k=X_t[:,k]
+                            X_t_k=X_t[:,k]
                             update=X_t[k,k]**-1*np.matmul(X_t_k.reshape((length,1)),X_t_k.reshape((1,length)))
                             if debug:
                                 print(f'X_t:{X_t}')
@@ -194,8 +199,8 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                             X_t=np.delete(X_t,k,1)
                     except IndexError:
                         print(f'x:{x}')
-                    print(f'Time necessary to update X_t: {time.perf_counter()-t_before_update}')
                     if debug:
+                        print(f'Time necessary to update X_t: {time.perf_counter()-t_before_update}')
                         error=X_t-inv(B_t.T.dot(B_t))
                         if error.shape[0]!=0 and np.max(np.abs(error))>1e-9:
                             print(f'X_t:{X_t}')
@@ -204,11 +209,11 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                 #if (X_t!=np.array([0])).all():
                 t_before_update=time.perf_counter()
                 u1=np.matmul(np.matmul(X_t,(B_t.T)),(-B[:,p]))
-                print(f'Time necessary to compute u_1 from X_t: {time.perf_counter()-t_before_update}')
                 #else:
                 #    print('Replacing X_t by zero')
                 #    u1=np.zeros(1)
                 if debug:
+                    print(f'Time necessary to compute u_1 from X_t: {time.perf_counter()-t_before_update}')
                     u1_=np.linalg.lstsq(B_t,-B[:,p])[0]
                     error=u1-u1_
                     if error.shape[0]!=0 and np.max(np.abs(error))>1e-9:
@@ -264,6 +269,9 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     #u_2[~alive]=0
                     if flag_issue:
                         v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
+                        A_S=B.copy()
+                        A_S[:,~alive]=0
+                        print(C_S[p,:].reshape((1,C_S.shape[1])).T-np.matmul(A_S.dot(C_S),C_S[p,:].reshape((1,C_S.shape[1])).T))
                 else:#this variant is false do not use it
                     try:
                         for k in indices_to_update:
@@ -286,7 +294,8 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     #u_2[~alive]=0
                     if flag_issue:
                         v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
-                print(f'Time necessary to update C_S and D_S: {time.perf_counter()-t_before_update}')
+                if debug:
+                    print(f'Time necessary to update C_S and D_S: {time.perf_counter()-t_before_update}')
                 if debug or (flag_issue and max(np.abs(v_perp_2-v_perp))>1e-10):
                     print(f'Error in v_perp:{v_perp_2-v_perp}')
             else:

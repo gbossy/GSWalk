@@ -25,6 +25,15 @@
 %To do loops
 \usepackage{multido}
 
+%for indicator 1
+\usepackage{dsfont}
+
+%to have plots be textwidth
+\usepackage{tikzscale}
+
+%to have smaller space between figure and caption
+\usepackage[font=small,skip=0pt]{caption}
+
 %to include plots generated in python
 \usepackage[utf8]{inputenc}
 \usepackage{pgfplots}
@@ -34,6 +43,11 @@
 \pgfplotsset{compat=newest}
 
 \DeclareMathOperator{\Span}{span}
+
+%for arrowed equations
+\usepackage{witharrows}
+\WithArrowsOptions{tikz={font={\normalfont\small}}}
+
 
 \DeclareMathAlphabet{\mymathbb}{U}{BOONDOX-ds}{m}{n}
 \usepackage[linesnumbered,boxruled]{algorithm2e}%ruled in 1st param
@@ -93,6 +107,22 @@ A couple years later, a team including three of the previous authors, Dadush, Ga
 The Gram- Schmidt walk was first introduced in \cite{blues}. It was described as a way to get a constructive algorithm for Theorem \ref{ banaszczyk}, but was later also used for experiment design by Spielman, Harshaw, Zhang and Sävje in \cite{harshaw2019balancing}. They use the balancing power of the algorithm to explicitly navigate the tradeoff between experiment unit covariate balance and robustness of the design. They improved the constant in the subgaussianity result and proved several other results which let them document the expected behavior of their design.
 
 In this work, we will try to understand the algorithm, think about how to modify it to achieve different goals, and what other things we could use it for.
+
+\section{Notation}
+$[m]$ refers to the set $\{1,\dots,m\}$.
+
+In this thesis, every $v\in\mathbb{R}^d$ for some $d$ is seen as a column vector of $\mathbb{R}^{d\times 1}$ when it appears in a product.
+
+Throughout the text, $e_k\in\mathbb{R}^{n}$ will be the vector with only 0's except for a 1 at position $k$ for some $k\in[n]$. Note that in particular for $M\in\mathbb{R}^{n\times n}$, $e_k^TM$ is the $k$th row of $M$ and $Me_k$ is its $k$th column.
+
+For some condition $c$, $\mathds{1}_{c}$ = $\begin{cases}
+            1 \textrm{ if }c\textrm{ is true}\\
+            0 \textrm{ if }c\textrm{ is false}
+        \end{cases}$
+
+Maybe remind pseudo inverse and properties.
+
+If $v\in\mathbb{R}^d$, for $i\in[d]$, $v(i)$ is the $i$th coordinate of $v$.
 
 \section{The Algorithm}
 %Define v_perp A_i etc
@@ -210,7 +240,7 @@ Thanks to an original idea from professor Marcus, one can fasten the GSW from th
 
 
 
-For some set $S\subset\{1,\dots,n\}$, let $I_S\in\mathbb{R}^{n\times n}$ be the diagonal $n\times n$ matrix with $I_S(i,i) =1$ if $i\in S$ and $0$ otherwise, and $B_S\in\mathbb{R}^{d\times n}$ be $BI_S$ where $B$ is as previously the matrix containing the input vectors as columns. We define $C_S\in\mathbb{R}^{n\times d}$ to be such that $C_SB_S=I_S$ and if $i\not\in S$, the $i$th row of $C_S$ is $0$. Finally, $D_S\in\mathbb{R}^{n\times n}$ is $C_SC_S^T$.
+For some set $S\subset\{1,\dots,n\}$, let $I_S\in\mathbb{R}^{n\times n}$ be the diagonal $n\times n$ matrix with $I_S(i,i) =1$ if $i\in S$ and $0$ otherwise, and $B_S\in\mathbb{R}^{d\times n}$ be $BI_S$ where $B$ is as previously the matrix containing the input vectors as columns. We define $C_S\in\mathbb{R}^{n\times d}$ to be such that $C_SB_S=I_S$ and if $i\not\in S$, the $i$th row of $C_S$ is $0$. That is, each row of $C_S$ whose index is in $S$ is the pseudo-inverse of the corresponding column in $B_S$. Finally, $D_S\in\mathbb{R}^{n\times n}$ is $C_SC_S^T$.
 
 This technique necessitates that the dimension of the space spanned by the input vectors is at most the dimension $d$ of the input vectors, as otherwise $C_S$ doesn't exist. %For the other case, one could produce another technique.
 
@@ -218,36 +248,62 @@ Here are the rank one update that let us compute ou matrix for some $S'=S\setmin
 \begin{lemma}\label{update_lemma}
 For $k\in S$, let 
 \begin{itemize}
-\item $c_k\in\mathbb{R}^{1\times n}$ be the $k$th row of $C_S$
-\item $d_k\in\mathbb{R}^{1\times d}$ be the $k$th row of $D_S$
+\item $c_k\in\mathbb{R}^{n}$ be the $k$th row of $C_S$
+\item $d_k\in\mathbb{R}^{d}$ be the $k$th row of $D_S$
 \item $S'= S\setminus\{k\}$
 \end{itemize}
-Then $C_{S'}=C_S-\frac{1}{d_k(k)}d_k^Tc_k$ and $D_{S'}=D_S-\frac{1}{d_k(k)}d_k^Td_k$.
+Then $C_{S'}=C_S-\frac{1}{d_k(k)}d_kc_k^T$ and $D_{S'}=D_S-\frac{1}{d_k(k)}d_kd_k^T$.
 \end{lemma}
 \begin{proof}
 For the first part, we have that\begin{align*}
-\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)B_{S'}&=\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)B_{S}I_{S'}\\
-&=C_SB_SI_{S'}-\frac{1}{d_k(k)}d_k^Tc_kB_{S}I_{S'}\\
-&=I_{S'}-\frac{1}{d_k(k)}d_k^Te_kI_{S'}\\
-&=I_{S'}-\frac{1}{d_k(k)}d_k^T\textbf{0}\\
+\left(C_S-\frac{1}{d_k(k)}d_kc_k^T\right)B_{S'}&=\left(C_S-\frac{1}{d_k(k)}d_kc_k^T\right)B_{S}I_{S'}\\
+&=C_SB_SI_{S'}-\frac{1}{d_k(k)}d_kc_k^TB_{S}I_{S'}\\
+&=I_{S'}-\frac{1}{d_k(k)}d_ke_k^TI_{S'}\\
+&=I_{S'}-\frac{1}{d_k(k)}d_k\textbf{0}\\
 &=I_{S'}\end{align*}
-Thus we just need to show that the rows of $C_S-\frac{1}{d_k(k)}d_k^Tc_k$ not in $S'$ are 0. As $\frac{1}{d_k(k)}d_k(k)=1$, we have that the $k$th row of $C_S-\frac{1}{d_k(k)}d_k^Tc_k$ is indeed 0. Lastly, as $D_S=C_SC_S^T$, we have that $i\not\in S\Rightarrow d_k(i)=0$ thus all the rows whose indices aren't in $S$ indeed do stay 0.
+Thus we just need to show that the rows of $C_S-\frac{1}{d_k(k)}d_kc_k^T$ not in $S'$ are 0. As $\frac{1}{d_k(k)}d_k(k)=1$, we have that the $k$th row of $C_S-\frac{1}{d_k(k)}d_kc_k^T$ is indeed 0. Lastly, as $D_S=C_SC_S^T$, we have that $i\not\in S\Rightarrow d_k(i)=0$ thus all the rows whose indices aren't in $S$ indeed do stay 0.
 
 For the second part, we can see that \begin{align*}
 D_{S'}&=C_{S'}C_{S'}^T\\
-&=\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)^T\\
-&=\left(C_S-\frac{1}{d_k(k)}d_k^Tc_k\right)\left(C_S^T-\frac{1}{d_k(k)}c_k^Td_k\right)\\
-&=C_SC_S^T-\frac{1}{d_k(k)}C_Sc_k^Td_k-\frac{1}{d_k(k)}d_k^Tc_kC_S^T+\frac{1}{d_k(k)^2}d_k^Tc_kc_k^Td_k\\
-&=D_S-\frac{1}{d_k(k)}d_k^Td_k-\frac{1}{d_k(k)}d_k^Td_k+\frac{1}{d_k(k)}d_k^Td_k\\
-&=D_S-\frac{1}{d_k(k)}d_k^Td_k\end{align*}\end{proof}
+&=\left(C_S-\frac{1}{d_k(k)}d_kc_k^T\right)\left(C_S-\frac{1}{d_k(k)}d_kc_k^T\right)^T\\
+&=\left(C_S-\frac{1}{d_k(k)}d_kc_k^T\right)\left(C_S^T-\frac{1}{d_k(k)}c_kd_k^T\right)\\
+&=C_SC_S^T-\frac{1}{d_k(k)}C_Sc_kd_k^T-\frac{1}{d_k(k)}d_kc_k^TC_S^T+\frac{1}{d_k(k)^2}d_kc_k^Tc_kd_k^T\\
+&=D_S-\frac{1}{d_k(k)}d_kd_k^T-\frac{1}{d_k(k)}d_kd_k^T+\frac{1}{d_k(k)}d_kd_k^T\\
+&=D_S-\frac{1}{d_k(k)}d_kd_k^T\end{align*}\end{proof}
 Now let's see why this is useful, that is, how to compute $v^\perp(t)$ and $u_t$ from these matrices.
 \begin{lemma}
 Assume we're currently in a step of the GSW where the active vectors are $A_t=\{v_s:s\in S\}$, and $v_k\in A_t$ is the pivot. If $d_k$ and $c_k$ are defined similarly as in Lemma \ref{update_lemma}, we have that $$v^\perp(t)=\frac{c_k}{\|c_k\|^2}\textrm{ and }u_t=\frac{d_k}{d_k(k)}.$$
 \end{lemma}
 \begin{proof}
-$c_k$ is perpendicular to all vectors but $v_k$ as $c_kv_i^T=0$ $\forall i\not=k$. Thus we just need to make sure
+Let $S'=S\setminus \{k\}$. Starting from the definition of $v^\perp(t)$ with pivot $k$, we have that \begin{equation*}\begin{WithArrows}
+v^\perp(t)&=\Pi_{V_t^\perp}(v_k)\Arrow{$\Span V_t\cup V_t^\perp=\mathbb{R}^d$}\\
+&=v_k-\Pi_{V_t}(v_k)\Arrow{Definition of $\Pi_{V_t^\perp}$ with pivot $k$}\\
+&=v_k-B_{S'}C_{S'}v_k\Arrow{Lemma \ref{update_lemma}}\\
+&=v_k-B_{S'}\left(C_S-\frac{1}{d_k(k)}d_kc_k^T\right)v_k\Arrow{$c_iv_k^T=\mathds{1}_{i=k}$}\\
+&=v_k-B_{S'}e_k+\frac{1}{d_k(k)}B_{S'}d_kc_k^Tv_k\Arrow{$k$th line of $B_{S'}$ is \textbf{0} as $k\not\in S'$}\\
+&=v_k+\textbf{0}+\frac{1}{d_k(k)}B_{S'}d_k\Arrow{$d_k$ is the $k$th row of $D_S=C_SC_S^T$}\\
+&=v_k+\frac{1}{d_k(k)}B_{S'}(e_k^TC_SC_S^T)^T\Arrow{$(AB)^T=B^TA^T$}\\
+&=v_k+\frac{1}{d_k(k)}B_{S'}C_SC_S^Te_k\\
+&=v_k+\frac{1}{d_k(k)}B_{S'}C_Sc_k\Arrow{Definition of $B_{S'}$} \\
+&=v_k+\frac{1}{d_k(k)}\left(B_{S}-v_ke_k^T\right)C_Sc_k\\
+&=v_k+\frac{1}{d_k(k)}B_{S}C_Sc_k^T-\frac{1}{d_k(k)}v_kc_k^Tc_k\Arrow{$D_S=C_SC_S^T$}\\
+&=v_k+\frac{1}{d_k(k)}B_{S}C_Sc_k^T-\frac{d_k(k)}{d_k(k)}v_k\\
+&=\frac{1}{d_k(k)}B_{S}C_Sc_k^T\Arrow{Pseudo-inverse properties}\\
+&=\frac{1}{d_k(k)}(B_{S}C_S)^Tc_k^T\Arrow{$(AB)^T=B^TA^T$}\\
+&=\frac{1}{d_k(k)}C_S^TB_{S}^Tc_k^T\Arrow{Pseudo-inverse properties}\\
+&=\frac{1}{d_k(k)}c_k^T\Arrow{$D_S=C_SC_S^T$}\\
+&=\frac{1}{\|c_k\|^2}c_k^T
+\end{WithArrows}\end{equation*}
+
+For the second part, we have that $u_t$ is the solution to the system \begin{align*}\textbf{u}_t(k) =1\\
+            \textbf{u}_t(i) =0 \text{ if } i \notin A_t\\
+            \textbf{v}^\perp(t) = \textbf{v}_{k} + \sum_{i \in A_t\setminus\{n(t)\}} \textbf{u}_t(i)\textbf{v}_i=B_Su_t\end{align*}
+But we have that $$v^\perp(t)=\frac{c_k}{\|c_k\|^2}=\frac{C_S^Te_k}{\|c_k\|^2}$$
+if we multiply by $C_S$ we get $\frac{C_SC_S^Te_k}{\|c_k\|^2}=u_t$ But as $C_SC_S^t=D_S$ and $\|c_k\|^2=\langle c_k,c_k\rangle=d_k(k)$, we have that indeed $\frac{d_k}{d_k(k)}=u_t$.
 \end{proof}
 These lemma mean that once we have computed $C_S$ and $D_S$ at the beginning of the GSW in time $O(n^2d+n^3)$, we can update them in time $O(nd+n^2)$ and store them with a similar quantity of memory, resultng in a total time of running of $O(n^2(d+n))$ as computing $\delta_t$ and updating the coloring takes $O(n)$ time.
+
+This happens to not be much faster in practice than a clever implementation using rank-one update to compute the inverse necessary to compute the Least Squares solution. That is because the size of the inverse matrix decreases at each step of the algorithm in that case, thus the one matrix multiplication necessary to compute the update direction becomes faster than the rank one updates described in this section quickly when $n$ is small.
 
 
 \section{Generalizing to any hyperparallelepiped}
@@ -279,16 +335,16 @@ All these questions are tough to answer, and generalizing the GSW to separate in
 By balance of the assignment, we mean the difference between the number of 1s and -1s. An assignment is perfectly balanced if its sum is 0.
 
 \subsection{How good is the GSW at minimizing output discrepancy in practice ?}
-We're interested in seeing how well does the GSW actually perform in minimizing the norm. We will compare it to the naive walk defined in \ref{}, the deterministic GSW \ref{} and the actual best computed via bruteforcing.
+We're interested in seeing how well does the GSW actually perform in minimizing the norm. We will compare it to the naive walk defined in \ref{}, the deterministic GSW \ref{} and the actual best computed via bruteforcing for small $n$s.
 
 \subsubsection{Experiment}\label{how_good_at_minimizing_disc}
-We compare the output discrepancy of GSW, DGSW, the naive walk and for some small $n$ also the best assignment found via brute forcing on all possibilities. We do this for$n=5,10,15,20$, and with $d=2^i$ for $i\in\{1,\dots,15\}$, where we sample $n$ vectors from the $d$-dimensional ball of radius 1.
+We compare the output discrepancy of GSW, DGSW, the naive walk, \textbf{NW}, and for some small $n$ also the best assignment found via brute forcing on all possibilities, \textbf{LDA}. We do this for$n=5,10,15,20$, and with $d=2^i$ for $i\in\{1,\dots,15\}$, where we sample $n$ vectors from the $d$-dimensional ball of radius 1.
 
 \subsubsection{Results}
 \begin{figure}
 \centering
-\include{comparative_norms_n=80_repeat=1000_max_dim=32768.0}
-\caption{Comparison of different discrepancy minimizing vectors for $n=5,10,15$ and $20$ vectors of dimension up to $2^{15}$. Results were averaged over 1000 runs.}\label{output_disc}
+\include{comparative_norms_n=160_repeat=1000_max_dim=32768.0}
+\caption{Result of the experiment from section \ref{how_good_at_minimizing_disc}: comparison of different discrepancy minimizing vectors for $n=5,10,20,40,80$ and $160$ vectors of dimension up to $2^{15}$. Results were averaged over 1000 runs.}\label{output_disc}
 \end{figure}
 Our results are visible in Figure \ref{output_disc}. We can see that GSW actually gives the worst results in terms of discrepancy minimization, but that when the dimension of the vector grows all methods seem to give similar results asymptotically. Note that we cannot say that the naive walk is just a better discrepancy-minimizing algorithm as these results would probably be different if we modified the distribution of input vectors.
 
@@ -434,16 +490,16 @@ DGSW&6808.96&13100.02&13597.86&6830.82&13303.18&13344.14
 We can see that our modifications indeed remove the late coloring. Multiplying once makes it so the vectors are colored approximately randomly and the multiplying twice makes it so the bigger vectors are colored earlier, as intended. There are very likely other ways of getting a similar effect, potentially by adding coordinates smartly.
 
 \subsection{Can we find another way of computing the update direction ?}
- As we saw that larger vectors get colored later in the process on average when using the classical algorithm, one could ask themselves how to revert this effect. Let $A$ be the matrix containing our input vectors as columns. Using a singular value decomposition, we have that $A=U\Sigma V^T$ where $U\in\mathbb{R}^{m\times m}$ and $V\in\mathbb{R}^{n\times n}$ are orthonormal and $\Sigma\in\mathbb{R}^{m\times n}$ is all zeros except for the diagonal elements which are positive singular values. Using this decomposition, we can see that $A^+=V\Sigma^+U^T$ where $\Sigma^+$ is $\Sigma^T$ except nonzero entries $\sigma_i$ are replaced by their inverse $1/\sigma_i$. But if one replaced $\Sigma^+$ by $\Sigma$, then the  matrix multiplying the pivot vector would be $A^T$ instead of $A^+$. This suggestion from Pr. Marcus turned out not to work if we want to balance the vectors, but it actually does the opposite which is very interesting. 
+ As we saw that larger vectors get colored later in the process on average when using the classical algorithm, one could ask themselves how to revert this effect. Let $A$ be the matrix containing our input vectors as columns. Using a singular value decomposition, we have that $A=U\Sigma V^T$ where $U\in\mathbb{R}^{m\times m}$ and $V\in\mathbb{R}^{n\times n}$ are orthonormal and $\Sigma\in\mathbb{R}^{m\times n}$ is all zeros except for the diagonal elements which are positive singular values. Using this decomposition, we can see that $A^+=V\Sigma^+U^T$ where $\Sigma^+$ is $\Sigma^T$ except nonzero entries $\sigma_i$ are replaced by their inverse $1/\sigma_i$. But if one replaced $\Sigma^+$ by $\Sigma$, then the  matrix multiplying the pivot vector would be $A^T$ instead of $A^+$. This suggestion from Pr. Marcus turned out not to work if we want to balance the vectors, but it actually does something close to the opposite which is very interesting. 
 
 \subsubsection{Experiment 1}\label{exp1_A_T}
 
-We sampled 200 vectors in dimension 200 in the ball of radius 1. We then ran the modified GSW algorithm where the next direction is computed via $u_t(\mathcal{A}_t\setminus\{p(t)\})=B_tv_{p(t)}$ and $u_t(p(t))=1, u_t(i)=0 \forall i\not\in\mathcal{A}_t$. Everything else is kept similar. 
+We sampled 200 vectors in dimension 200 in the ball of radius 1. We then ran the modified GSW algorithm where the next direction is computed via $u_t(\mathcal{A}_t\setminus\{p(t)\})=B_t^Tv_{p(t)}$ and $u_t(p(t))=1, u_t(i)=0 \forall i\not\in\mathcal{A}_t$, where $B_t$ is the matrix containing the vectors that are still alive and not the pivot as columns. Everything else is kept similar. 
 
 \subsubsection{Experiment 2}\label{exp2_A_T}
 
 
-We run as similar experiment as in \ref{how_good_at_minimizing_disc} except we look for the discrepancy maximizing assignment via bruteforcing and look at the naive walk trying to maximize the output norm. We also do not go as high in the dimension in order for the experiment to run faster.
+We run a similar experiment as in \ref{how_good_at_minimizing_disc} except we look for the discrepancy maximizing assignment via bruteforcing (\textbf{HDA}) and look at the naive walk trying to maximize the output norm (\textbf{MNW}).
 
 \subsubsection{Results}
 \begin{figure}[h]
@@ -456,11 +512,11 @@ The outputs are shown in the figure \ref{A_T_instead_of_lstsq}. We can see that 
 
 \begin{figure}[h]
 \centering
-\include{comparative_norms_n=20_repeat=100_max_dim=8192.0_maximizing}
-\caption{Results of Experiment 2 (\ref{exp2_A_T}). Comparing the modified GSW and DGSW with discrepancy maximizing algorithms.}
+\include{comparative_norms_n=160_repeat=1000_max_dim=32768.0_maximizing}
+\caption{Results of Experiment 2 (\ref{exp2_A_T}): comparing the modified GSW and DGSW with discrepancy maximizing algorithms.}
 \label{A_T_instead_of_lstsq_2}
 \end{figure}
-We can see that using $A^T$ doesn't actually maximize the norm for small dimensions even though it seems to asymptotically do so when the dimension grows. It would be interesting to investigate the evolution of this phenomenon when $n$ grows as the output norm seems to go down then back up for $n=15$ and $20$.
+Results of experiment \ref{exp2_A_T} are available in Figure \ref{A_T_instead_of_lstsq_2}. We can see that for small $n$, using $A^T$ doesn't actually maximize the norm for small dimensions even though it seems to asymptotically do so when the dimension grows. For bigger $n$'s though, this variant seems to be decent at maximizing the norm of the vector of imbalance. It is also interesting to notice that there seems to be a change of regime around the point $n=d$, where after that point the average norm of the vector of imbalances goes up with the dimension whereas it seems to go down before.
 
 \subsection{Are vectors with smaller dimensionality colored at the same moment as vectors with more dimensions ?}\label{smaller_dimensionality}
 We want to know if vectors with a lot of 0's can be found among vectors that are less sparse, as that could be very interesting to solve various problems such as the planted clique. We will investigate how early they're colored on average.
@@ -577,13 +633,13 @@ For dimension 100 we see that the maximum absolute coloring rule actually yields
 We can also notice that the DGSW leads to a higher coloring rate, which makes sense as we choose a pivot that's close to being colored and the DGSW will thus finish coloring it more often that the classical GSW.
 
 \subsubsection{Experiment 2}\label{exp_plot_max_col}
-We sample 100 vectors of dimension 2 and run both the classical GSW with random pivot and the classical GSW with \textbf{maximum absolute coloring} (MAC) similar to Section \ref{pivot_colored_coloring_rules}. We do similarly but for the DGSW too. We do one run per variantand per starting pivot and plot the results to see whether there is some pattern and how it looks like, similarly to figure \ref{4types_3}.
+We sample 100 vectors of dimension 2 and run both the classical GSW with random pivot and the classical GSW with \textbf{maximum absolute coloring} (MAC) similar to Section \ref{pivot_colored_coloring_rules}, as well as the DGSW with the MAC pivot rule which makes it a deterministic algorithm given the first pivot. We do1000 runs per variant and plot the results to see whether there is some pattern and how it looks like, similarly to figure \ref{4types_3}.
 
 \subsubsection{Results 2}
 \begin{figure}[h]
 \centering
-\include{comparative_norms_n=80_repeat=1000_max_dim=32768.0_max_col}
-\caption{Results of Experiment 2 (Section \ref{exp_plot_max_col}). 100 output sums in dimension 2 using GSW, DGSW with both the random pivot rule and the maximal coloring rule.}
+\include{comparative_norms_n=160_repeat=1000_max_dim=32768.0_max_col}
+\caption{Results of Experiment 2 (Section \ref{exp_plot_max_col}). Average norm of 1000 vector of imbalances for $n=5,10,20,40,80,160$ input vectors and in dimensions $d=2$ to $d=2^15$, using GSW with both the random pivot rule and the maximal coloring rule, and DGSW with the maximal coloring rule.}
 \label{results_plot_max_col}
 \end{figure}
 Results are visible in Figure \ref{results_plot_max_col}. We can see that as previously, the vector of imbalance from DGSW run are slightly closer to 0 than those from GSW runs. Additionally, we can see that the MAC pivot rule seems to give us shorter vector of imbalances as well, with MAC DGSW runs being visibly closer to \textbf{0}. While this effect could be expected as we color the vectors that allow us to pick smaller deltas and thus move less away from \textbf{0}, it is actually very visible here and we will investigate it further in the next experiment.
