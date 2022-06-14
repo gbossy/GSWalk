@@ -309,9 +309,9 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                 d=np.diag([norm(B_t[:,i]) for i in range(B_t.shape[1])])
                 u1=d.dot(u1)
             colinear=False
-            if not no_matrix_mult or flag_issue:
+            if not no_matrix_mult or flag_issue or n>len(v[0]):
                 u[alive_and_not_pivot]=u1
-                if no_matrix_mult and (debug or (flag_issue and max(np.abs(u_2-u))>1e-10)):
+                if (no_matrix_mult and n<=len(v[0])) and (debug or (flag_issue and max(np.abs(u_2-u))>1e-10)):
                     print(f'classic u:{u}')
                     print(f'new u:{u_2}')
                     print(f'Error in u:{u_2-u}')
