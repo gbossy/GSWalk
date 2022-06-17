@@ -119,7 +119,7 @@ def choose_pivot(v,x,alive,mode='random',debug=False):
     return pivot
 
 @timer
-def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,B_S=None,C_S=None,normal_variant=True):
+def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,B_S=None,C_S=None,normal_variant=True,return_all=False):
     alive_count=sum(alive)
     n=len(v)
     u=np.zeros(n)
@@ -265,7 +265,14 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     except IndexError:
                         print('Error in updating in no_matrix_mult part')
                         print(f'x:{x}')
-                    u_2=B_S[p,:]/B_S[p,p]
+                    if return_all:
+                        u_2=[]
+                        for i in alive:
+                            update=B_S[i,:]/B_S[i,i]
+                            v_perp_2=C_S[i,:]/norm(C_S[i,:])**2
+                            u_2.append((i,update,v_perp_2))
+                    else:
+                        u_2=B_S[p,:]/B_S[p,p]
                     #u_2[~alive]=0
                     if flag_issue:
                         v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
@@ -352,44 +359,88 @@ def quadprog_solve_qp(P, q, A=None, b=None):
     return quadprog.solve_qp(qp_G, qp_a, qp_C, qp_b, meq)[0]
 
 @timer
-def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,bigger_first=False,thresh=0):
-    non_zero=np.abs(u)>1e-10
-    deltas=np.concatenate(((a[non_zero]-x_in_basis[non_zero])/u[non_zero],(b[non_zero]-x_in_basis[non_zero])/u[non_zero]),axis=0)
-    if debug:
-        print(f'All deltas considered:{deltas}')
-    try:
-        d_p=min(deltas[deltas>thresh])
+def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,bigger_first=False,thresh=0,mode=None):
+    return_all_modes=['min_move','min_move_random']
+    if not mode in return_all_modes:        
+        non_zero=np.abs(u)>1e-10
+        deltas=np.concatenate(((a[non_zero]-x_in_basis[non_zero])/u[non_zero],(b[non_zero]-x_in_basis[non_zero])/u[non_zero]),axis=0)
         if debug:
-            print(f'delta_+:{d_p}')
-    except:
-        print(f'No delta>=0: {deltas}')#could set d_p=0 maybe
-    try:
-        d_m=max(deltas[deltas<-thresh])
-        if debug:
-            print(f'delta_-:{d_m}')
-    except:
-        print(f'No delta<=0: {deltas}')#could set d_m=0 maybe
-    if d_p<1e-12 and d_m>-1e-12:
-        print('Issue: too small deltas')
-    if not bigger_first or not colinear or abs(x_in_basis[p])<=thresh:
-        r=random.random()
-        if r>d_p/(d_p-d_m) or (smallest_delta and d_p<abs(d_m)):
+            print(f'All deltas considered:{deltas}')
+        try:
+            d_p=min(deltas[deltas>thresh])
             if debug:
-                print('delta=delta_+')
-            return d_p,d_m
+                print(f'delta_+:{d_p}')
+        except:
+            print(f'No delta>=0: {deltas}')#could set d_p=0 maybe
+        try:
+            d_m=max(deltas[deltas<-thresh])
+            if debug:
+                print(f'delta_-:{d_m}')
+        except:
+            print(f'No delta<=0: {deltas}')#could set d_m=0 maybe
+        if d_p<1e-12 and d_m>-1e-12:
+            print('Issue: too small deltas')
+        if not bigger_first or not colinear or abs(x_in_basis[p])<=thresh:
+            r=random.random()
+            if r>d_p/(d_p-d_m) or (smallest_delta and d_p<abs(d_m)):
+                if debug:
+                    print('delta=delta_+')
+                return d_p,d_m,p,u
+            else:
+                if debug:
+                    print('delta=delta_-')
+                return d_m,d_p,p,u
         else:
-            if debug:
-                print('delta=delta_-')
-            return d_m,d_p
+            if abs(x_in_basis[p])>0:
+                if debug:
+                    print('delta=delta_+')
+                return d_p,d_m,p,u
+            else:
+                if debug:
+                    print('delta=delta_-')
+                return d_m,d_p,p,u
     else:
-        if abs(x_in_basis[p])>0:
+        deltas_array=[]
+        for i in range(len(u)):
+            (p,u_,v_perp)=u[i]
+            non_zero=np.abs(u_)>1e-10
+            deltas=np.concatenate(((a[non_zero]-x_in_basis[non_zero])/u_[non_zero],(b[non_zero]-x_in_basis[non_zero])/u_[non_zero]),axis=0)
             if debug:
-                print('delta=delta_+')
-            return d_p,d_m
+                print(f'All deltas considered:{deltas}')
+            try:
+                d_p=min(deltas[deltas>thresh])
+                if debug:
+                    print(f'delta_+:{d_p}')
+            except:
+                print(f'No delta>=0: {deltas}')#could set d_p=0 maybe
+            try:
+                d_m=max(deltas[deltas<-thresh])
+                if debug:
+                    print(f'delta_-:{d_m}')
+            except:
+                print(f'No delta<=0: {deltas}')#could set d_m=0 maybe
+            if d_p<1e-12 and d_m>-1e-12:
+                print('Issue: too small deltas')
+            if not bigger_first or not colinear or abs(x_in_basis[p])<=thresh:
+                r=random.random()
+                if r>d_p/(d_p-d_m) or (smallest_delta and d_p<abs(d_m)):
+                    if debug:
+                        print('delta=delta_+')
+                    deltas_array.append((d_p,d_m))
+                else:
+                    if debug:
+                        print('delta=delta_-')
+                    deltas_array.append((d_m,d_p))
+        norms=[norm(deltas_array[i][0]*u[i][2]) for i in range(len(u))]
+        if debug:
+            print(f'Potential norms of move: {norms}')
+        if mode=='min_move_random':#add smallest delta case
+            i=np.argmin(norms)
+            return deltas_array[i][0],deltas_array[i][1],u[i][0],u[i][1]
         else:
-            if debug:
-                print('delta=delta_-')
-            return d_m,d_p
+            print('unknown mode in next_factor')
+            return None
+        
 
 @timer
 def change_basis(v,basis1,basis2):#from basis1 to basis2
@@ -405,8 +456,9 @@ def orthonormal_basis(n):
     return basis
 
 @timer
-def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False,pivot=None,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,early_stop=None,normal_variant=True):
+def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False,pivot=None,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,early_stop=None,normal_variant=True,):
     n=len(x)
+    return_all_modes=['min_move','min_move_random']
     orth_basis=orthonormal_basis(n)
     if a is None:
         if debug:
@@ -425,10 +477,13 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
     if sum(a<b)<n:
         print('Issue with hyper parallelepipeds: a>b for some dimension')
     alive,debug,_=get_alives(x,a,b,basis,debug=debug,flag_issue=flag_issue)
-    if pivot is None:
-        p=choose_pivot(v,x,alive,debug=debug,mode=mode if mode is not None else'random' if not bigger_first else 'max_norm')
+    if not (mode in return_all_modes and no_matrix_mult==True and n<=len(v[0])):
+        if pivot is None:
+            p=choose_pivot(v,x,alive,debug=debug,mode=mode if mode is not None else'random' if not bigger_first else 'max_norm')
+        else:
+            p=pivot
     else:
-        p=pivot
+        p=-2
     if basis is None:
         x_in_basis=x.copy()
     else:
@@ -446,15 +501,16 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
     else:
         B=np.transpose(np.vstack(tuple([e for e in v])))
     while p!=-1:
-        pivots.append(p)
         if debug:
             print(f'\n Iteration {i}')
         if early_stop is not None and i==early_stop:
             if debug:
-                print(f'Stopping early atfer step {i-1}')
+                print(f'Stopping early after step {i-1}')
             break
-        u_in_basis,colinear,X_t,old_alive_and_not_pivot,old_alive,B_S,C_S=next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq,i_instead_of_d_inv=i_instead_of_d_inv,d_instead_of_d_inv=d_instead_of_d_inv,B_S=B_S,C_S=C_S,no_matrix_mult=no_matrix_mult,flag_issue=flag_issue,normal_variant=normal_variant)
-        d1,d2=next_factor(x_in_basis,u_in_basis,p,a,b,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first)
+        u_in_basis,colinear,X_t,old_alive_and_not_pivot,old_alive,B_S,C_S=next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq,i_instead_of_d_inv=i_instead_of_d_inv,d_instead_of_d_inv=d_instead_of_d_inv,B_S=B_S,C_S=C_S,no_matrix_mult=no_matrix_mult,flag_issue=flag_issue,normal_variant=normal_variant,return_all=mode in return_all_modes)
+        d1,d2,p,u=next_factor(x_in_basis,u_in_basis,p,a,b,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first,mode=mode)
+        pivots.append(p)
+
         if basis is not None:
             u=change_basis(u_in_basis,basis,orth_basis)
         else:
@@ -471,7 +527,7 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
         colored.extend(newly_colored)
         if p in newly_colored:
             pivot_in_colored+=1
-        if not alive[p]:
+        if not alive[p] and not (mode in return_all_modes and no_matrix_mult==True and n<=len(v[0])):
             p=choose_pivot(v,x_in_basis,alive,debug=debug,mode=mode if mode is not None else'random' if not bigger_first else 'max_norm')
         x_in_basis[~alive]=np.round(x_in_basis[~alive])
         i+=1
