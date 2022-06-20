@@ -219,7 +219,7 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     if error.shape[0]!=0 and np.max(np.abs(error))>1e-9:
                         print(f'final error:{error}')
                         print(np.max(np.abs(error)))
-            elif no_matrix_mult and n<=len(v[0]):#matrix names correspond to the originals in gsw_notes.pdf
+            elif no_matrix_mult:# and n<=len(v[0]):#matrix names correspond to the originals in gsw_notes.pdf
                 S=alive
                 #if A_S is None:
                 #    A_S=B.copy()
@@ -230,6 +230,7 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     #A_S=B.copy()
                     if debug:
                         print(f'A_S:{B}')
+
                     if C_S is None:
                         C_S=inv(B)
                     #C_S2=np.linalg.inv(A_S.dot(A_S.T)).dot(A_S).T
@@ -274,11 +275,11 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     else:
                         u_2=B_S[p,:]/B_S[p,p]
                     #u_2[~alive]=0
-                    if flag_issue:
+                    if flag_issue or debug:
                         v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
-                        A_S=B.copy()
-                        A_S[:,~alive]=0
-                        print(C_S[p,:].reshape((1,C_S.shape[1])).T-np.matmul(A_S.dot(C_S),C_S[p,:].reshape((1,C_S.shape[1])).T))
+                        #A_S=B.copy()
+                        #A_S[:,~alive]=0
+                        #print(C_S[p,:].reshape((1,C_S.shape[1])).T-np.matmul(A_S.dot(C_S),C_S[p,:].reshape((1,C_S.shape[1])).T))
                 else:#this variant is false do not use it
                     try:
                         for k in indices_to_update:
@@ -299,7 +300,7 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                         print(f'x:{x}')
                     u_2=B_S[p,:]/B_S[p,p]
                     #u_2[~alive]=0
-                    if flag_issue:
+                    if flag_issue or debug:
                         v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
                 if debug:
                     print(f'Time necessary to update C_S and D_S: {time.perf_counter()-t_before_update}')
@@ -316,7 +317,7 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                 d=np.diag([norm(B_t[:,i]) for i in range(B_t.shape[1])])
                 u1=d.dot(u1)
             colinear=False
-            if not no_matrix_mult or flag_issue or n>len(v[0]):
+            if not no_matrix_mult or flag_issue: #or n>len(v[0]):
                 u[alive_and_not_pivot]=u1
                 if (no_matrix_mult and n<=len(v[0])) and (debug or (flag_issue and max(np.abs(u_2-u))>1e-10)):
                     print(f'classic u:{u}')
@@ -496,10 +497,11 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
     old_alive=alive
     pivot_in_colored=0 
     pivots=[]
+    B=np.transpose(np.vstack(tuple([e for e in v])))
+    if n>len(v[0]) and no_matrix_mult:
+        B=np.concatenate((B,1e-10*np.eye(n)),axis=0)
     if basis is not None:
-        B=np.matmul(np.transpose(np.vstack(tuple([e for e in v]))),np.vstack(tuple([e for e in basis])).T)#is v already a list ? If so we can simplify syntax here
-    else:
-        B=np.transpose(np.vstack(tuple([e for e in v])))
+        B=np.matmul(B,np.vstack(tuple([e for e in basis])).T)#is v already a list ? If so we can simplify syntax here
     while p!=-1:
         if debug:
             print(f'\n Iteration {i}')
