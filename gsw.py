@@ -26,6 +26,7 @@ float_formatter = "{:.3e}".format
 #plt.rcParams.update({'font.size': 22})
 
 def timer(func):
+    #If the boolean in the if is turned to True, this will print the running time of every function that is decorated by @timer with its name and let us see what takes how much time
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start_time = time.perf_counter()
@@ -39,26 +40,27 @@ def timer(func):
     return wrapper
 
 @timer
-def get_alives(x,a,b,basis,previous=None,thresh=1e-12,debug=False,flag_issue=False):
+def get_alives(x,previous=None,thresh=1e-12,debug=False,flag_issue=False):
+    #This function returns a list of boolean telling us for each vector whether it is alive or not. If it receives the previous list and flag_issue is false, it only updates elements that were previously alive
+    n=len(x)
+    ones=np.ones(n)
     if debug:
         print(f'Computing the list of elements that are alive with threshold {thresh}')
         print(f'x in basis: {x}')
-        print(f'a: {a}')
-        print(f'b: {b}')
     if flag_issue:
-        if sum((x-a)>-thresh)<len(x) or sum((b-x)>-thresh)<len(x):
-            x[((x-a)<-thresh) | ((b-x)<-thresh)]=np.round(x[((x-a)<-thresh) | ((b-x)<-thresh)])
-            if sum((x-a)>-thresh)<len(x) or sum((b-x)>-thresh)<len(x):
+        if sum((x+ones)>-thresh)<n or sum((ones-x)>-thresh)<n:
+            x[((x+ones)<-thresh) | ((ones-x)<-thresh)]=np.round(x[((x+ones)<-thresh) | ((ones-x)<-thresh)])
+            if sum((x+ones)>-thresh)<len(x) or sum((ones-x)>-thresh)<len(x):
                 print('Issue: x is out of bound!')
                 debug=True
     if previous is None:
-        alive=(np.abs(x-a)>thresh) & (np.abs(x-b)>thresh)
+        alive=(np.abs(x+ones)>thresh) & (np.abs(x-ones)>thresh)
     else:#is this even faster with all the indexing ? hard to know
-        alive_update=(np.abs(x[previous]-a[previous])>thresh) & (np.abs(x[previous]-b[previous])>thresh)
+        alive_update=(np.abs(x[previous]+ones[previous])>thresh) & (np.abs(x[previous]-ones[previous])>thresh)
         alive=previous.copy()
         alive[previous]=alive_update
-    #alive=np.array([-1<x[i]<1 for i in range(len(x))])
     return alive,debug,None if previous is None else [i for i in range(len(alive)) if ((previous[i]) and not alive[i])]
+
 @timer
 def choose_pivot(v,x,alive,mode='random',debug=False):
     if debug:
@@ -119,7 +121,7 @@ def choose_pivot(v,x,alive,mode='random',debug=False):
     return pivot
 
 @timer
-def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,B_S=None,C_S=None,normal_variant=True,return_all=False):
+def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,B_S=None,C_S=None,return_all=False):
     alive_count=sum(alive)
     n=len(v)
     u=np.zeros(n)
@@ -140,18 +142,6 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
             v_perp=B[:,p]
     else:
         v_perp=B[:,p]
-    #print(B_t)
-    #v_perp_maybe=np.linalg.inv(B_t.T.dot(B_t)).dot(B_t.T)[p,:]
-    #print(v_perp-v_perp_maybe)
-    #v_perp_maybe/=norm(v_perp_maybe)**2
-    #print(v_perp-v_perp_maybe)
-    #if len(v)<=len(v[0]):
-        #B_mat=B.copy()
-        #B_mat[:,~alive]=0
-        #v_perp_maybe=np.linalg.inv(B_mat.T.dot(B_mat)).dot(B_mat)[p,:]
-        #v_perp_maybe/=norm(v_perp_maybe)**2
-        #print(v_perp)
-        #print(v_perp_maybe)
     if ((v_perp)<1e-12).all() and bigger_first:
         model=sklm.Lasso(fit_intercept=False,alpha=1e-32)
         model.fit(B_t,-B[:,p])
@@ -219,7 +209,7 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     if error.shape[0]!=0 and np.max(np.abs(error))>1e-9:
                         print(f'final error:{error}')
                         print(np.max(np.abs(error)))
-            elif no_matrix_mult:# and n<=len(v[0]):#matrix names correspond to the originals in gsw_notes.pdf
+            elif no_matrix_mult and n<=len(v[0]):#matrix names correspond to the originals in gsw_notes.pdf
                 S=alive
                 #if A_S is None:
                 #    A_S=B.copy()
@@ -247,61 +237,41 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                 indices_to_update.reverse()
                 if debug:
                     print(f'indices to update: {indices_to_update}')
-                if normal_variant:
-                    try:
-                        for k in indices_to_update:
-                            b_k=B_S[:,k]
-                            update_B=b_k[k]**-1*np.matmul(b_k.reshape((n,1)),b_k.reshape((1,n)))
-                            update_C=b_k[k]**-1*np.matmul(b_k.reshape((n,1)),C_S[k,:].reshape((1,C_S.shape[1])))
-                            if debug:
-                                print(f'B_S:{B_S}')
-                                print(f'update of B_S: {update_B}')
-                                print(f'C_S:{C_S}')
-                                print(f'update of C_S: {update_C}')
-                            B_S-=update_B
-                            C_S[alive]-=update_C[alive]
-                            #A_S=B.copy()
-                            #A_S[:,~alive]=0
-                            #print(C_S-np.linalg.inv(A_S.T.dot(A_S)).dot(A.T))
-                    except IndexError:
-                        print('Error in updating in no_matrix_mult part')
-                        print(f'x:{x}')
-                    if return_all:
-                        u_2=[]
-                        for i in alive:
-                            update=B_S[i,:]/B_S[i,i]
-                            v_perp_2=C_S[i,:]/norm(C_S[i,:])**2
-                            u_2.append((i,update,v_perp_2))
-                    else:
-                        u_2=B_S[p,:]/B_S[p,p]
-                    #u_2[~alive]=0
-                    if flag_issue or debug:
-                        v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
+                try:
+                    for k in indices_to_update:
+                        b_k=B_S[:,k]
+                        update_B=b_k[k]**-1*np.matmul(b_k.reshape((n,1)),b_k.reshape((1,n)))
+                        update_C=b_k[k]**-1*np.matmul(b_k.reshape((n,1)),C_S[k,:].reshape((1,C_S.shape[1])))
+                        if debug:
+                            print(f'B_S:{B_S}')
+                            print(f'update of B_S: {update_B}')
+                            print(f'C_S:{C_S}')
+                            print(f'update of C_S: {update_C}')
+                        B_S-=update_B
+                        C_S[alive]-=update_C[alive]
                         #A_S=B.copy()
                         #A_S[:,~alive]=0
-                        #print(C_S[p,:].reshape((1,C_S.shape[1])).T-np.matmul(A_S.dot(C_S),C_S[p,:].reshape((1,C_S.shape[1])).T))
-                else:#this variant is false do not use it
-                    try:
-                        for k in indices_to_update:
-                            update_B=B_S[k,k]**-1*np.matmul(B_S[alive,k].reshape((alive_count,1)),B_S[k,alive].reshape((1,alive_count)))
-                            update_C=B_S[k,k]**-1*np.matmul(B_S[alive,k].reshape((alive_count,1)),C_S[k,:].reshape((1,C_S.shape[1])))
-                            if debug:
-                                print(f'B_S:{B_S}')
-                                print(f'update of B_S: {update_B}')
-                                print(f'C_S:{C_S}')
-                                print(f'update of C_S: {update_C}')
-                            B_S[alive,:][:,alive]-=update_B
-                            C_S[alive,:]-=update_C
-                            #A_S=B.copy()
-                            #A_S[:,~alive]=0
-                            #print(C_S-np.linalg.inv(A_S.T.dot(A_S)).dot(A.T))
-                    except IndexError:
-                        print('Error in updating in no_matrix_mult part')
-                        print(f'x:{x}')
+                        #print(C_S-np.linalg.inv(A_S.T.dot(A_S)).dot(A.T))
+                except IndexError:
+                    print('Error in updating in no_matrix_mult part')
+                    print(f'x:{x}')
+                if return_all:
+                    u_2=[]
+                    for i in range(len(alive)):
+                        if alive[i]:
+                            update=B_S[i,:]/B_S[i,i]
+                            v_perp_2=C_S[i,:]/norm(C_S[i,:])**2
+                            to_send=(i,update,v_perp_2)
+                            #print(to_send)
+                            u_2.append(to_send)
+                else:
                     u_2=B_S[p,:]/B_S[p,p]
-                    #u_2[~alive]=0
-                    if flag_issue or debug:
-                        v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
+                #u_2[~alive]=0
+                if flag_issue or debug:
+                    v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
+                    #A_S=B.copy()
+                    #A_S[:,~alive]=0
+                    #print(C_S[p,:].reshape((1,C_S.shape[1])).T-np.matmul(A_S.dot(C_S),C_S[p,:].reshape((1,C_S.shape[1])).T))
                 if debug:
                     print(f'Time necessary to update C_S and D_S: {time.perf_counter()-t_before_update}')
                 if debug or (flag_issue and max(np.abs(v_perp_2-v_perp))>1e-10):
@@ -317,7 +287,7 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                 d=np.diag([norm(B_t[:,i]) for i in range(B_t.shape[1])])
                 u1=d.dot(u1)
             colinear=False
-            if not no_matrix_mult or flag_issue: #or n>len(v[0]):
+            if not no_matrix_mult or flag_issue or n>len(v[0]):
                 u[alive_and_not_pivot]=u1
                 if (no_matrix_mult and n<=len(v[0])) and (debug or (flag_issue and max(np.abs(u_2-u))>1e-10)):
                     print(f'classic u:{u}')
@@ -339,11 +309,11 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
         b=np.append(b,0)
         u=quadprog_solve_qp(P,np.zeros(n),A=A,b=b)
         colinear=False
-    if debug or (flag_issue and max(np.abs(v_perp-B.dot(u)))>1e-6 and not force_balance and not i_instead_of_d_inv and not d_instead_of_d_inv):
+    if (debug or (flag_issue and max(np.abs(v_perp-B.dot(u)))>1e-6 and not force_balance and not i_instead_of_d_inv and not d_instead_of_d_inv)) and not return_all:
         #print('Issue with classic u')
         print(f'v_perp:{v_perp}')
         print(f'v_perp-sum u_i*v_i:{v_perp-B.dot(u)}')
-    if no_matrix_mult and (debug or (flag_issue and max(np.abs(v_perp-B.dot(u_2)))>1e-6 and not force_balance and not i_instead_of_d_inv and not d_instead_of_d_inv)):
+    if (no_matrix_mult and n<=len(v[0]) and (debug or (flag_issue and max(np.abs(v_perp-B.dot(u_2)))>1e-6 and not force_balance and not i_instead_of_d_inv and not d_instead_of_d_inv))) and not return_all:
         #print('Issue with u from no_mat_mult')
         print(f'v_perp:{v_perp}')
         print(f'v_perp-sum u_i*v_i:{v_perp_2-B.dot(u_2)}')
@@ -360,8 +330,8 @@ def quadprog_solve_qp(P, q, A=None, b=None):
     return quadprog.solve_qp(qp_G, qp_a, qp_C, qp_b, meq)[0]
 
 @timer
-def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,bigger_first=False,thresh=0,mode=None):
-    return_all_modes=['min_move','min_move_random']
+def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,bigger_first=False,thresh=0,mode=None,always_new_pivot=False):#do two cases in return/append instead of doubling code
+    return_all_modes=['move_inv_prop','min_move_random']
     if not mode in return_all_modes:        
         non_zero=np.abs(u)>1e-10
         deltas=np.concatenate(((a[non_zero]-x_in_basis[non_zero])/u[non_zero],(b[non_zero]-x_in_basis[non_zero])/u[non_zero]),axis=0)
@@ -404,7 +374,9 @@ def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,big
         deltas_array=[]
         for i in range(len(u)):
             (p,u_,v_perp)=u[i]
+            #print(u_)
             non_zero=np.abs(u_)>1e-10
+            #print(non_zero)
             deltas=np.concatenate(((a[non_zero]-x_in_basis[non_zero])/u_[non_zero],(b[non_zero]-x_in_basis[non_zero])/u_[non_zero]),axis=0)
             if debug:
                 print(f'All deltas considered:{deltas}')
@@ -432,12 +404,49 @@ def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,big
                     if debug:
                         print('delta=delta_-')
                     deltas_array.append((d_m,d_p))
-        norms=[norm(deltas_array[i][0]*u[i][2]) for i in range(len(u))]
+        norms=[(norm(deltas_array[i][0]*u[i][2]),norm(deltas_array[i][1]*u[i][2])) for i in range(len(u))]
         if debug:
             print(f'Potential norms of move: {norms}')
-        if mode=='min_move_random':#add smallest delta case
-            i=np.argmin(norms)
-            return deltas_array[i][0],deltas_array[i][1],u[i][0],u[i][1]
+        if mode=='min_move_random':
+            if len(norms)==0:
+                return 0,0,-1,np.zeros(len(x_in_basis))
+            elif smallest_delta==False:
+                i=np.argmin([norms[i][0] for i in range(len(norms))])
+                return deltas_array[i][0],deltas_array[i][1],u[i][0],u[i][1]
+            else:
+                i=np.argmin([min(norms[i][0],norms[i][1]) for i in range(len(norms))])
+                j=np.argmin(norms[i])
+                return deltas_array[i][j],deltas_array[i][(j-1)%2],u[i][0],u[i][1]
+        elif mode=='move_inv_prop':
+            norms=[2*norm(deltas_array[i][0]*u[i][2]*deltas_array[i][1]/(abs(deltas_array[i][0])+abs(deltas_array[i][1]))) for i in range(len(u))]
+            if len(norms)==0:
+                return 0,0,-1,np.zeros(len(x_in_basis))
+            else:
+                norms_zero=[n==0 for n in norms]
+                if sum(norms_zero)==0:
+                    norms_inv=[1/n for n in norms]
+                    r=random.random()*sum(norms_inv)
+                    norms_cs=np.cumsum(norms_inv)
+                    norms_cs[norms_cs-r<0]=float('Inf')
+                    pivot=np.argmin(norms_cs)
+                    r=random.random()
+                    #print('d_m then d_p')
+                    d_m=min(deltas_array[pivot])
+                    #print(d_m)
+                    d_p=max(deltas_array[pivot])
+                    #print(d_p)
+                    #print(u[pivot][0],pivot)
+                    #print(u[pivot][1])
+                    if r>d_p/(d_p-d_m) or (smallest_delta and d_p<abs(d_m)):
+                        if debug:
+                            print('delta=delta_+')
+                        return d_p,d_m,u[pivot][0],u[pivot][1]
+                    else:
+                        if debug:
+                            print('delta=delta_-')
+                        return d_m,d_p,u[pivot][0],u[pivot][1]
+                else:
+                    print('This case shouldnt arise as no_matrix_mult requires C_S to actually exist and it doesnt if v_perp is 0 , error somewhere')
         else:
             print('unknown mode in next_factor')
             return None
@@ -457,9 +466,9 @@ def orthonormal_basis(n):
     return basis
 
 @timer
-def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False,pivot=None,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,early_stop=None,normal_variant=True,):
+def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False,pivot=None,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,early_stop=None,always_new_pivot=False):
     n=len(x)
-    return_all_modes=['min_move','min_move_random']
+    return_all_modes=['move_inv_prop','min_move_random']
     orth_basis=orthonormal_basis(n)
     if a is None:
         if debug:
@@ -477,7 +486,7 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
         basis=None
     if sum(a<b)<n:
         print('Issue with hyper parallelepipeds: a>b for some dimension')
-    alive,debug,_=get_alives(x,a,b,basis,debug=debug,flag_issue=flag_issue)
+    alive,debug,_=get_alives(x,debug=debug,flag_issue=flag_issue)
     if not (mode in return_all_modes and no_matrix_mult==True and n<=len(v[0])):
         if pivot is None:
             p=choose_pivot(v,x,alive,debug=debug,mode=mode if mode is not None else'random' if not bigger_first else 'max_norm')
@@ -509,8 +518,8 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
             if debug:
                 print(f'Stopping early after step {i-1}')
             break
-        u_in_basis,colinear,X_t,old_alive_and_not_pivot,old_alive,B_S,C_S=next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq,i_instead_of_d_inv=i_instead_of_d_inv,d_instead_of_d_inv=d_instead_of_d_inv,B_S=B_S,C_S=C_S,no_matrix_mult=no_matrix_mult,flag_issue=flag_issue,normal_variant=normal_variant,return_all=mode in return_all_modes)
-        d1,d2,p,u=next_factor(x_in_basis,u_in_basis,p,a,b,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first,mode=mode)
+        u_in_basis,colinear,X_t,old_alive_and_not_pivot,old_alive,B_S,C_S=next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq,i_instead_of_d_inv=i_instead_of_d_inv,d_instead_of_d_inv=d_instead_of_d_inv,B_S=B_S,C_S=C_S,no_matrix_mult=no_matrix_mult,flag_issue=flag_issue,return_all=mode in return_all_modes)
+        d1,d2,p,u_in_basis=next_factor(x_in_basis,u_in_basis if (i==0 or (not (mode in return_all_modes)) or always_new_pivot or not alive[p]) else [u[1] for u in u_in_basis if u[0]==p][0],p,a,b,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first,mode=None if (not always_new_pivot and alive[p] and i!=0) else mode,always_new_pivot=always_new_pivot)
         pivots.append(p)
 
         if basis is not None:
@@ -523,7 +532,7 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
         x+=d1*u
         if debug:
             print(f'Incurred discrepancy:{norm(np.matmul(np.transpose(np.vstack(tuple([e for e in v]))),x))}')
-        alive,debug,newly_colored=get_alives(x_in_basis,a,b,basis,previous=alive,debug=debug,flag_issue=flag_issue)
+        alive,debug,newly_colored=get_alives(x_in_basis,previous=alive,debug=debug,flag_issue=flag_issue)
         if debug:
             print('')
         colored.extend(newly_colored)
@@ -538,6 +547,7 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
             print(f'x:{x}')
             print(f'u:{u}')
             print(f'delta: {d1}')
+            print(f'Iteration {i}')
             return None
         if debug:
             print('in basis')
