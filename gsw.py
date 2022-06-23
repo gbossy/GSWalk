@@ -41,7 +41,7 @@ def timer(func):
 
 @timer
 def get_alives(x,previous=None,thresh=1e-12,debug=False,flag_issue=False):
-    #This function returns a list of boolean telling us for each vector whether it is alive or not. If it receives the previous list and flag_issue is false, it only updates elements that were previously alive
+    #This function returns a list of boolean telling us for each vector whether it is alive or not. If it receives the previous list and flag_issue is false, it only updates elements that were previously alive. The threshold lets us control how we deal with numerical imprecisions.
     n=len(x)
     ones=np.ones(n)
     if debug:
@@ -63,6 +63,7 @@ def get_alives(x,previous=None,thresh=1e-12,debug=False,flag_issue=False):
 
 @timer
 def choose_pivot(v,x,alive,mode='random',debug=False):
+    #This function lets us hoose a pivot whenever we don't use a mode that checks all potential updates.
     if debug:
         print(f'Choosing pivot through mode {mode}.')
         print(f'x in basis: {x}')
@@ -70,13 +71,12 @@ def choose_pivot(v,x,alive,mode='random',debug=False):
     if mode=='max_index':
         for i in range(len(x),0,-1):
             if alive[i]:
-                return i
+                pivot=i
         pivot= -1
     elif mode=='random':
         try:
             pivot= random.choice(np.arange(len(x))[alive])
-        except IndexError:
-            #print('Every element is fixed')
+        except IndexError:            
             pivot= -1
     elif mode=='max_norm':
         norms=[norm(v[i]) if alive[i] else 0 for i in range(len(v))]
@@ -116,14 +116,17 @@ def choose_pivot(v,x,alive,mode='random',debug=False):
     else:
         print('Unknown mode of pivot choice: aborting.')
         pivot=None
-    if debug:
+    if debug and pivot!=-1:
         print(f'Pivot chosen: {pivot}')
+    elif debug:
+        print('Every element is fixed')
     return pivot
 
 @timer
-def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,B_S=None,C_S=None,return_all=False):
+def next_direction(p,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,B_S=None,C_S=None,return_all=False):
+    #This function computes the update direction, as well as the pivot when it depends on the potential updates
     alive_count=sum(alive)
-    n=len(v)
+    d,n=B.shape
     u=np.zeros(n)
     u[p]=1
     alive_and_not_pivot=alive.copy()
@@ -132,6 +135,8 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
         print(f'Alive and not pivot: {alive_and_not_pivot}')
     alive_and_not_pivot=np.asarray(alive_and_not_pivot)
     B_t=B[:,alive_and_not_pivot]
+    
+    #Computation of v_perp through projection matrix
     if alive_and_not_pivot.any() and (((bigger_first or solve_adversarial) and not no_matrix_mult) or flag_issue or debug):
         q,r=np.linalg.qr(B[:,alive_and_not_pivot])
         rs=np.array([(r[i,:]==np.zeros(r.shape[1])).all() for i in range(r.shape[0])])
@@ -142,6 +147,8 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
             v_perp=B[:,p]
     else:
         v_perp=B[:,p]
+        
+    #anti-adversarial technique #1
     if ((v_perp)<1e-12).all() and bigger_first:
         model=sklm.Lasso(fit_intercept=False,alpha=1e-32)
         model.fit(B_t,-B[:,p])
@@ -150,11 +157,12 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
         u[alive_and_not_pivot]=u1
     elif not force_balance:
         all_good=False
+        
+        #anti-adversarial technique #2
         if solve_adversarial and ((v_perp)<1e-12).all():
             B_min=np.vstack((B,np.ones(n)))
             P=B_min.T.dot(B_min)+1e-15*np.eye(B_min.shape[1])
             A=np.eye(n)[~alive_and_not_pivot,:]
-            #A=np.vstack((A,np.ones(len(v))))
             b=np.zeros(n)
             b[p]=1
             b=b[~alive_and_not_pivot]
@@ -162,11 +170,13 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
             u=quadprog_solve_qp(P,np.zeros(n),A=A,b=b)
             colinear=False
             all_good=(v_perp-B.dot(u)<1e-12).all()
+        #reset if anti-adversarial technique #2 gave a solution that moved the vector of imbalances and use classic computation method instead
         if not all_good and solve_adversarial and ((v_perp)<1e-12).all():
             u=np.zeros(n)
             u[p]=1
             print('Additional constraints breached the framework and were thus discarded')
         if not all_good:
+            #fast least squares that still involves one matrix mult per iteration
             if fast_lst_sq and B_t.shape[0]>=B_t.shape[1] and not no_matrix_mult:
                 if X_t is None:
                     X_t=inv(B_t.T.dot(B_t))
@@ -196,12 +206,8 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                             print(f'X_t:{X_t}')
                             print(f'error:{error}')
                             print(np.max(np.abs(error)))
-                #if (X_t!=np.array([0])).all():
                 t_before_update=time.perf_counter()
                 u1=np.matmul(np.matmul(X_t,(B_t.T)),(-B[:,p]))
-                #else:
-                #    print('Replacing X_t by zero')
-                #    u1=np.zeros(1)
                 if debug:
                     print(f'Time necessary to compute u_1 from X_t: {time.perf_counter()-t_before_update}')
                     u1_=np.linalg.lstsq(B_t,-B[:,p])[0]
@@ -209,24 +215,16 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                     if error.shape[0]!=0 and np.max(np.abs(error))>1e-9:
                         print(f'final error:{error}')
                         print(np.max(np.abs(error)))
-            elif no_matrix_mult and n<=len(v[0]):#matrix names correspond to the originals in gsw_notes.pdf
+            #fast computations described in the report except matrix names correspond to the originals in gsw_notes.pdf which isn't available on github
+            elif no_matrix_mult and n<=d:
                 S=alive
-                #if A_S is None:
-                #    A_S=B.copy()
-                #    if debug:
-                #        print(f'A_S: {A_S}')
-                #I_S=np.diag(np.array([1 if S[i] else 0 for i in range(len(S))]))
                 if C_S is None or flag_issue:
-                    #A_S=B.copy()
                     if debug:
                         print(f'A_S:{B}')
-
                     if C_S is None:
                         C_S=inv(B)
-                    #C_S2=np.linalg.inv(A_S.dot(A_S.T)).dot(A_S).T
                     if debug:
                         print(f'C_S:{C_S}')
-                        #print(f'C_S2:{C_S2}')
                         print(f'C_S*A_S:{C_S.dot(B)}')
                 if B_S is None:
                     B_S=np.matmul(C_S,C_S.T)
@@ -249,9 +247,6 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                             print(f'update of C_S: {update_C}')
                         B_S-=update_B
                         C_S[alive]-=update_C[alive]
-                        #A_S=B.copy()
-                        #A_S[:,~alive]=0
-                        #print(C_S-np.linalg.inv(A_S.T.dot(A_S)).dot(A.T))
                 except IndexError:
                     print('Error in updating in no_matrix_mult part')
                     print(f'x:{x}')
@@ -262,24 +257,25 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                             update=B_S[i,:]/B_S[i,i]
                             v_perp_2=C_S[i,:]/norm(C_S[i,:])**2
                             to_send=(i,update,v_perp_2)
-                            #print(to_send)
                             u_2.append(to_send)
                 else:
                     u_2=B_S[p,:]/B_S[p,p]
-                #u_2[~alive]=0
                 if flag_issue or debug:
                     v_perp_2=C_S[p,:]/norm(C_S[p,:])**2
-                    #A_S=B.copy()
-                    #A_S[:,~alive]=0
-                    #print(C_S[p,:].reshape((1,C_S.shape[1])).T-np.matmul(A_S.dot(C_S),C_S[p,:].reshape((1,C_S.shape[1])).T))
                 if debug:
                     print(f'Time necessary to update C_S and D_S: {time.perf_counter()-t_before_update}')
                 if debug or (flag_issue and max(np.abs(v_perp_2-v_perp))>1e-10):
                     print(f'Error in v_perp:{v_perp_2-v_perp}')
+                    
+            #else just do least squares
             else:
                 u1=np.linalg.lstsq(B_t,-B[:,p])[0]
+                
+            #define it still to make sure it's correct when flag_issue is true
             if flag_issue and no_matrix_mult:
                 u1=np.linalg.lstsq(B_t,-B[:,p])[0]
+                
+            #two special tries to see whether it improves
             if d_instead_of_d_inv:
                 d=np.diag([norm(B_t[:,i]) for i in range(B_t.shape[1])])
                 u1=d.dot(d).dot(u1)
@@ -287,18 +283,17 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
                 d=np.diag([norm(B_t[:,i]) for i in range(B_t.shape[1])])
                 u1=d.dot(u1)
             colinear=False
-            if not no_matrix_mult or flag_issue or n>len(v[0]):
+            #define final u
+            if not no_matrix_mult or flag_issue or n>d:
                 u[alive_and_not_pivot]=u1
-                if (no_matrix_mult and n<=len(v[0])) and (debug or (flag_issue and max(np.abs(u_2-u))>1e-10)):
+                if (no_matrix_mult and n<=d) and (debug or (flag_issue and max(np.abs(u_2-u))>1e-10)):
                     print(f'classic u:{u}')
                     print(f'new u:{u_2}')
                     print(f'Error in u:{u_2-u}')
             else:
                 u=u_2
-        #if no_matrix_mult and (debug or (flag_issue and max(np.abs(u_2-u))>1e-10)):
-        #    print(f'classic u:{u}')
-        #    print(f'new u:{u_2}')
-        #    print(f'Error in u:{u_2-u}')
+    
+    #force balance design from spielman savje zhang and harshaw
     else:
         P=B.T.dot(B)
         A=np.eye(n)[~alive_and_not_pivot,:]
@@ -309,12 +304,12 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
         b=np.append(b,0)
         u=quadprog_solve_qp(P,np.zeros(n),A=A,b=b)
         colinear=False
+    
+    #print stuff if wanted
     if (debug or (flag_issue and max(np.abs(v_perp-B.dot(u)))>1e-6 and not force_balance and not i_instead_of_d_inv and not d_instead_of_d_inv)) and not return_all:
-        #print('Issue with classic u')
         print(f'v_perp:{v_perp}')
         print(f'v_perp-sum u_i*v_i:{v_perp-B.dot(u)}')
-    if (no_matrix_mult and n<=len(v[0]) and (debug or (flag_issue and max(np.abs(v_perp-B.dot(u_2)))>1e-6 and not force_balance and not i_instead_of_d_inv and not d_instead_of_d_inv))) and not return_all:
-        #print('Issue with u from no_mat_mult')
+    if (no_matrix_mult and n<=d and (debug or (flag_issue and max(np.abs(v_perp-B.dot(u_2)))>1e-6 and not force_balance and not i_instead_of_d_inv and not d_instead_of_d_inv))) and not return_all:
         print(f'v_perp:{v_perp}')
         print(f'v_perp-sum u_i*v_i:{v_perp_2-B.dot(u_2)}')
     if debug:
@@ -322,6 +317,7 @@ def next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,de
     return u,colinear,X_t,alive_and_not_pivot,alive,B_S,C_S
 
 def quadprog_solve_qp(P, q, A=None, b=None):
+    #solves a quadratic program
     qp_G = .5 * (P + P.T)   # make sure P is symmetric
     qp_a = -q
     qp_C = -A.T
@@ -330,11 +326,15 @@ def quadprog_solve_qp(P, q, A=None, b=None):
     return quadprog.solve_qp(qp_G, qp_a, qp_C, qp_b, meq)[0]
 
 @timer
-def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,bigger_first=False,thresh=0,mode=None,always_new_pivot=False):#do two cases in return/append instead of doubling code
+def next_factor(x_in_basis,u,p,colinear,debug=False,smallest_delta=False,bigger_first=False,thresh=0,mode=None,always_new_pivot=False):
+    #returns tthe next delta and chooses pivots for return_all modes
+    ones=np.ones(len(x_in_basis))
     return_all_modes=['move_inv_prop','min_move_random']
+    
+    #first part for non-return_all modes
     if not mode in return_all_modes:        
         non_zero=np.abs(u)>1e-10
-        deltas=np.concatenate(((a[non_zero]-x_in_basis[non_zero])/u[non_zero],(b[non_zero]-x_in_basis[non_zero])/u[non_zero]),axis=0)
+        deltas=np.concatenate(((-ones[non_zero]-x_in_basis[non_zero])/u[non_zero],(ones[non_zero]-x_in_basis[non_zero])/u[non_zero]),axis=0)
         if debug:
             print(f'All deltas considered:{deltas}')
         try:
@@ -370,6 +370,8 @@ def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,big
                 if debug:
                     print('delta=delta_-')
                 return d_m,d_p,p,u
+            
+    #second part, for return_all modes: we loop to get every delta for every u and then use our specific pivot rule to choose the update and pivot
     else:
         deltas_array=[]
         for i in range(len(u)):
@@ -377,7 +379,7 @@ def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,big
             #print(u_)
             non_zero=np.abs(u_)>1e-10
             #print(non_zero)
-            deltas=np.concatenate(((a[non_zero]-x_in_basis[non_zero])/u_[non_zero],(b[non_zero]-x_in_basis[non_zero])/u_[non_zero]),axis=0)
+            deltas=np.concatenate(((-ones[non_zero]-x_in_basis[non_zero])/u_[non_zero],(ones[non_zero]-x_in_basis[non_zero])/u_[non_zero]),axis=0)
             if debug:
                 print(f'All deltas considered:{deltas}')
             try:
@@ -430,13 +432,8 @@ def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,big
                     norms_cs[norms_cs-r<0]=float('Inf')
                     pivot=np.argmin(norms_cs)
                     r=random.random()
-                    #print('d_m then d_p')
                     d_m=min(deltas_array[pivot])
-                    #print(d_m)
                     d_p=max(deltas_array[pivot])
-                    #print(d_p)
-                    #print(u[pivot][0],pivot)
-                    #print(u[pivot][1])
                     if r>d_p/(d_p-d_m) or (smallest_delta and d_p<abs(d_m)):
                         if debug:
                             print('delta=delta_+')
@@ -453,11 +450,13 @@ def next_factor(x_in_basis,u,p,a,b,colinear,debug=False,smallest_delta=False,big
         
 
 @timer
-def change_basis(v,basis1,basis2):#from basis1 to basis2
+def change_basis(v,basis1,basis2):
+    #changes the representation of v from basis1 to basis2 where v is a vector and basis are represented by lists of np.arrays
     return np.matmul(np.linalg.inv(np.transpose(np.array(basis2))),np.matmul(np.transpose(np.array(basis1)),v))
 
 @timer
 def orthonormal_basis(n):
+    #returns the canonical orthonormal basis of length n
     basis=[]
     for i in range(n):
         v_i=np.zeros(n)
@@ -466,26 +465,17 @@ def orthonormal_basis(n):
     return basis
 
 @timer
-def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False,pivot=None,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,early_stop=None,always_new_pivot=False):
+def gram_schmidt_walk(v,x,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False,pivot=None,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,force_no_mat_mult=False,flag_issue=False,early_stop=None,always_new_pivot=False):
+    #function to call to actually perform GSW
     n=len(x)
     return_all_modes=['move_inv_prop','min_move_random']
     orth_basis=orthonormal_basis(n)
-    if a is None:
-        if debug:
-            print('Initializing a with -1s')
-        a=-np.ones(n)
-    if b is None:
-        if debug:
-            print('Initializing b with 1s')
-        b=np.ones(n)
     if basis is not None and len(basis)<n:
         print('Basis is lacking vectors to be full-dimensional: replacing it by a canonical orthonormal basis')#could complete it with Gram-Schmidt maybe
         basis=None
     if basis is not None and np.linalg.cond(np.array(basis)) > 1/sys.float_info.epsilon:
         print('Basis matrix is singular: replacing it by a canonical orthonormal basis')
         basis=None
-    if sum(a<b)<n:
-        print('Issue with hyper parallelepipeds: a>b for some dimension')
     alive,debug,_=get_alives(x,debug=debug,flag_issue=flag_issue)
     if not (mode in return_all_modes and no_matrix_mult==True and n<=len(v[0])):
         if pivot is None:
@@ -507,7 +497,7 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
     pivot_in_colored=0 
     pivots=[]
     B=np.transpose(np.vstack(tuple([e for e in v])))
-    if n>len(v[0]) and no_matrix_mult:
+    if n>len(v[0]) and no_matrix_mult and force_no_mat_mult:
         B=np.concatenate((B,1e-10*np.eye(n)),axis=0)
     if basis is not None:
         B=np.matmul(B,np.vstack(tuple([e for e in basis])).T)#is v already a list ? If so we can simplify syntax here
@@ -518,16 +508,15 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
             if debug:
                 print(f'Stopping early after step {i-1}')
             break
-        u_in_basis,colinear,X_t,old_alive_and_not_pivot,old_alive,B_S,C_S=next_direction(p,v,a,b,B,alive,old_alive_and_not_pivot,old_alive,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq,i_instead_of_d_inv=i_instead_of_d_inv,d_instead_of_d_inv=d_instead_of_d_inv,B_S=B_S,C_S=C_S,no_matrix_mult=no_matrix_mult,flag_issue=flag_issue,return_all=mode in return_all_modes)
-        d1,d2,p,u_in_basis=next_factor(x_in_basis,u_in_basis if (i==0 or (not (mode in return_all_modes)) or always_new_pivot or not alive[p]) else [u[1] for u in u_in_basis if u[0]==p][0],p,a,b,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first,mode=None if (not always_new_pivot and alive[p] and i!=0) else mode,always_new_pivot=always_new_pivot)
+        u_in_basis,colinear,X_t,old_alive_and_not_pivot,old_alive,B_S,C_S=next_direction(p,B,alive,old_alive_and_not_pivot,old_alive,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq,i_instead_of_d_inv=i_instead_of_d_inv,d_instead_of_d_inv=d_instead_of_d_inv,B_S=B_S,C_S=C_S,no_matrix_mult=no_matrix_mult,flag_issue=flag_issue,return_all=mode in return_all_modes)
+        d1,d2,p,u_in_basis=next_factor(x_in_basis,u_in_basis if (i==0 or (not (mode in return_all_modes)) or always_new_pivot or not alive[p]) else [u[1] for u in u_in_basis if u[0]==p][0],p,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first,mode=None if (not always_new_pivot and alive[p] and i!=0) else mode,always_new_pivot=always_new_pivot)
         pivots.append(p)
-
         if basis is not None:
             u=change_basis(u_in_basis,basis,orth_basis)
         else:
             u=u_in_basis
         if plot:
-            plot_situation_v2(v,p,x,u,[d1,d2],i)
+            plot_situation(v,p,x,u,[d1,d2],i)
         x_in_basis+=d1*u_in_basis
         x+=d1*u
         if debug:
@@ -563,15 +552,18 @@ def gram_schmidt_walk(v,x,a=None,b=None,plot=False,debug=False,smallest_delta=Fa
         return x
 
 def gram_schmidt_columns(X):
+    #performs the gram-schmidt process on the columns of X
     Q, R = np.linalg.qr(X)
     return Q
 
 def sample_from_sphere(n):
+    #samples n points uniformly from the sphere in dim 2
     thetas=np.random.uniform(0,2*np.pi,n)
     return [np.array([np.sin(t),np.cos(t)]) for t in thetas]
 
 @timer
 def sample_from_ball(n,d=2):
+    #samples n points uniformly from the ball of radius 1 in dim d
     p=[]
     for i in range(n):
         u = np.random.normal(0,1,d)  # an array of d normally distributed random variables
@@ -579,81 +571,24 @@ def sample_from_ball(n,d=2):
         r = random.random()**(1.0/d)
         p.append(r*u/norm)
     return p
-    #r = np.random.uniform(0,1,n)**0.5
-    #theta = np.random.uniform(0,2*np.pi,n)
-    #x = r*np.cos(theta)
-    #y = r*np.sin(theta)
-    #return [np.array([x[i],y[i]]) for i in range(n)]
     
 def sample_binary(n,d,p=0.5):
+    #samples n binary vector of dimension d where each coordinate is 1 with prob p
     return [np.random.binomial(size=d, n=1, p=p) for i in range(n)]
 
 def inv(m):
+    #computes inverse or pseudoinverse of a matrix
     a,_ = m.shape
     i = np.eye(a, a)
     sol=np.linalg.lstsq(m, i)
-    #print(sol[3])
     return sol[0]
 
 def latex_vector(x):
+    #formats vectors to look good in tikz pictures for tex documents
     return str(list(x)).replace('[','').replace(']','').replace(',','\\ \n')
-
-def plot_situation(v,p,x,u,deltas,i):
-    #plot vectors, combination where it is now, two potential updates,show x and deltas and u
-    plt.plot([e[0] for e in v],[e[1] for e in v],'o',label='Input vector')
-    B=np.transpose(np.vstack(tuple([e for e in v])))
-    plt.plot(np.matmul(B,x)[0],np.matmul(B,x)[1],'X',label='Current relaxation',markersize=15)
-    x_1=x+deltas[0]*u
-    x_2=x+deltas[1]*u
-    xs=[x_1,x_2]
-    print(f'xs: {xs}')
-    print(f'sum:{[np.matmul(B,x) for x in xs]}')
-    plt.plot([np.matmul(B,x)[0] for x in xs],[np.matmul(B,x)[1] for x in xs],'H',label='Potential updated relaxation')
-    #plt.figtext(0.63,0.05, f"$x_t=\begin%{latex_vector(np.round(x,3))}\end%$\\ \n $u_t=\begin%{latex_vector(np.round(u,3))}\end%$\\ \n $\delta^+_t,\delta^-_t ={str(list(np.round(np.array(deltas),3))).replace('[','').replace(']','')}$".replace('%','{pmatrix}'))
-    plt.figtext(0.63,0.05, f"$\delta^+_t,\delta^-_t ={str(list(np.round(np.array(deltas),3))).replace('[','').replace(']','')}$")
-    plt.legend(bbox_to_anchor=(1.8, 1))
-    tikzplotlib.save(f"gswalk{i}2d.tex")
-    plt.show()
-    if x.shape[0]==3:
-        fig = plt.figure(figsize=(10, 10))
-        ax = fig.gca(projection='3d')
-
-        sn = 1   #limits in x,y,z
-        x1, x2 = -sn, sn
-        y1, y2 = -sn, sn    
-        z1, z2 = -sn, sn
-        ax.scatter(x[0],x[1],x[2],label='Current coloring')
-        ax.scatter([x_1[0],x_2[0]], [x_1[1],x_2[1]],zs=[x_1[2],x_2[2]])
-
-        # Data for plotting plane x|y|z=0 within the domain
-        tmp = np.linspace(-1, sn, 8)
-        x,y = np.meshgrid(tmp,tmp)
-        z = 0*x
-
-        ax.plot_surface(z+1,x,y, alpha=0.15, color='red')    # plot the plane x=1
-        ax.plot_surface(z-1,x,y, alpha=0.15, color='red')    # plot the plane x=-1
-        ax.plot_surface(x,z+1,y, alpha=0.15, color='green')  # plot the plane y=1
-        ax.plot_surface(x,z-1,y, alpha=0.15, color='green')  # plot the plane y=-1
-        ax.plot_surface(x,y,z+1, alpha=0.15, color='blue')   # plot the plane z=1
-        ax.plot_surface(x,y,z-1, alpha=0.15, color='blue')   # plot the plane z=-1
-        ax.plot([x_1[0],x_2[0]], [x_1[1],x_2[1]],zs=[x_1[2],x_2[2]],label='Update direction')
-
-        # Set limits of the 3D display
-        ax.set_xlim3d([-sn, sn])
-        ax.set_ylim3d([-sn, sn])
-        ax.set_zlim3d([-sn, sn])
-
-        # Set labels at the 3d box/frame
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        plt.savefig(f"gswalk{i}3d.png")
-        plt.legend()
-        tikzplotlib.save(f"gswalk{i}3d.tex")
-        plt.show()
         
-def plot_situation_v2(v,p,x,u,deltas,i):
-    #fig, (ax1, ax2) = plt.subplots(1, 2)
+def plot_situation(v,p,x,u,deltas,i):
+    #plots GSW situation step by step, with 3d plot for n=3
     fig = plt.figure(figsize=plt.figaspect(0.5))
     fig.subplots_adjust(wspace=0.1, hspace=0)
     ax1 = fig.add_subplot(1, 2, 2)
@@ -669,14 +604,9 @@ def plot_situation_v2(v,p,x,u,deltas,i):
     print(f'xs: {xs}')
     print(f'sum:{[np.matmul(B,x) for x in xs]}')
     ax1.plot([np.matmul(B,x)[0] for x in xs],[np.matmul(B,x)[1] for x in xs],'<',label='Potential update')
-    #plt.figtext(0.63,0.05, f"$x_t=\begin%{latex_vector(np.round(x,3))}\end%$\\ \n $u_t=\begin%{latex_vector(np.round(u,3))}\end%$\\ \n $\delta^+_t,\delta^-_t ={str(list(np.round(np.array(deltas),3))).replace('[','').replace(']','')}$".replace('%','{pmatrix}'))
     plt.figtext(0.45,0.04, f"$\delta^+_t,\delta^-_t ={str(list(np.round(np.array(deltas),3))).replace('[','').replace(']','')}$")
-    #ax1.legend(bbox_to_anchor=(0,0),loc='lower center')
 
-    #tikzplotlib.save(f"gswalk{i}2d.tex")
-    #plt.show()
     if x.shape[0]==3:
-        #fig = plt.figure(figsize=(10, 10))
         ax = fig.add_subplot(1, 2, 1, projection='3d')
 
         sn = 1   #limits in x,y,z
@@ -705,9 +635,6 @@ def plot_situation_v2(v,p,x,u,deltas,i):
         ax.set_zlim3d([-sn, sn])
 
         # Set labels at the 3d box/frame
-        #ax.set_xlabel('X')
-        #ax.set_ylabel('Y')
-        #ax.set_zlabel('Z')
         if sum(np.abs(x)==1)==2:
             ax.legend(bbox_to_anchor=(0.8, -0.07))
     if sum(np.abs(x)==1)==2:
@@ -717,7 +644,8 @@ def plot_situation_v2(v,p,x,u,deltas,i):
     plt.show()
     
 def naive_walk(vs_,minimizing=True):
-    vs=vs_.copy()
+    #performs naive walk
+    vs=vs_.copy()#needs to be copied or it shuffles original too and then assignments don't make sense
     indices=list(range(len(vs)))
     random.shuffle(indices)
     x=np.zeros(len(vs))
@@ -744,6 +672,7 @@ def powerset(iterable):
     return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
 
 def best_coloring(v,minimizing=True):
+    #computes best assignment in term of norm of vector of imbalances through bruteforce
     indices_subset=powerset(range(len(v)))
     v_mat=np.transpose(np.array(v))
     best_assignment=[]
@@ -757,6 +686,7 @@ def best_coloring(v,minimizing=True):
     return best_disc,best_assignment
 
 def open_dic_file(file_name):
+    #used to open results of big computations
     try:
         file = open(file_name, "rb")
         dic = pickle.load(file)
@@ -766,6 +696,7 @@ def open_dic_file(file_name):
         return {}
 
 def save_dic_to_file(dic,file_name):
+    #used to save results of big computations
     file = open(file_name,'wb')
     pickle.dump(dic,file)
     file.close()
@@ -773,6 +704,7 @@ def save_dic_to_file(dic,file_name):
 def average(list_):
     return sum(list_)/len(list_)
 
+#last 2 functions were used for some experiments
 def produce_correlations(v,file_name=None,repeat=10**3,thresh1=0.5,thresh2=0.2):
     print(f'Studying correlations with {repeat} iterations')
     n=len(v)
