@@ -82,16 +82,15 @@ Chair of Combinatorial Analysis\\
 EPFL}
 \begin{document}
 \maketitle
-\begin{center}\bf Abstract\end{center}
-\small In this paper, we first discuss vector balancing and discrepancy theory. We then introduce the Gram-Schmidt Walk as well as why it was invented. We discuss its properties, and a cubic time implementation, when the trivial implementation runs in quadratic time. In the second half, we perform several experiments to see how the algorithm behaves and how and why we could modify it. Finally, we discuss a new problem and how we can use the Gram-Schmidt Walk to solve it.
+\begin{abstract} In this paper, we first discuss vector balancing and discrepancy theory. We then introduce the Gram-Schmidt Walk as well as why it was invented. We discuss its properties, and a cubic time implementation, when the trivial implementation runs in quadratic time. In the second half, we perform several experiments to see how the algorithm behaves and how and why we could modify it. Finally, we discuss a new problem and how we can use the Gram-Schmidt Walk to solve it. \end{abstract}
 
 \section{Introduction}
 Imagine that you want to divide a group of soccer players into two teams such that the match between them will be fair. Or, that you want to divide several quantities of several types of sweets between your two kids who each have their own tastes. In this paper, we will discuss an algorithm performing vector balancing, that is, an algorithm that could solve these problems. The basic goal is, given $\textbf{v}_1,\dots,\textbf{v}_n\in\mathbb{R}^n$, to find $\textbf{z}\in\{-1,1\}^n$ such that $\sum_{i=1}^n\textbf{z}(i)\textbf{v}_i$ is small. 
 
 Let $(X, \mathcal{S})$ be a finite set system, with $X = \{1, 2, \dots, d\}$ and $\mathcal{S}= \{S_1, S_2, \dots S_n\}$ a collection of subsets of $X$. Given a coloring function $x : X \rightarrow \{-1, 1\}$, the discrepancy of a set $S$ is defined as $x(S)= |\sum_{i \in S}x(i)|$. It is a measure of how balanced $S$ is with respect to the coloring $x$. The discrepancy of the set system $(X,\mathcal{S})$ is defined as 
-$$disc(X,\mathcal{S}) = \min_{x: X\rightarrow \{-1, 1\}} \max_{S \in \mathcal{S}} x(S)$$
+$$\textrm{disc}(X,\mathcal{S}) = \min_{x: X\rightarrow \{-1, 1\}} \max_{S \in \mathcal{S}} x(S)$$
 This can be seen as a specific case of a vector balancing problem. If we consider the incidence matrix $\textbf{A} \in \mathbb{R}^{d \times n}$ of the set system $(X, \mathcal{S})$, we can write 
-$$ disc(\textbf{A})= \min_{\textbf{x} \in \{-1, 1\}^n} \|\textbf{A}\textbf{x}\|_\infty$$
+$$\textrm{disc}(\textbf{A})= \min_{\textbf{x} \in \{-1, 1\}^n} \|\textbf{A}\textbf{x}\|_\infty$$
 But we could also balance vectors with coordinates different from 0 and 1, so if we have a set of vectors $\textbf{v}_1,\dots,\textbf{v}_n\in\mathbb{R}^d$ we can see its discrepancy as the minimum infinity norm of the \textbf{vector of imbalances} (that is, $\textbf{Ax}$) among all colorings $\textbf{x}\in\{-1,1\}^n$.
 
 In 1997, polish mathematician Wojciech Banaszczyk published \textit{Balancing vectors and Gaussian measures of $n$-dimensional convex bodies}\cite{banaszczyk1998balancing} in which we can read the following theorem:
@@ -99,19 +98,23 @@ In 1997, polish mathematician Wojciech Banaszczyk published \textit{Balancing ve
 For all convex body $K \subseteq \mathbb{R}^m$, with Gaussian measure $\gamma_m(K)\geq 1/2$, and given $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^m$, $\|\textbf{v}_i\|_2 \leq 1$ for all $i$, then there exists $ \textbf{z} \in \{-1, 1\}^n$ such that
 $$\sum_{i=1}^n \textbf{z}(i)\textbf{v}_i \in 5 \cdot K $$
 \end{theorem}
-The Gaussian measure of a body is defined as $$\gamma_m(S) = \mathbb{P}[\textbf{g} \in S] = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}$$
-    where $\textbf{g}$ is a standard Gaussian random vector in $\mathbb{R}^m$, i.e. $\textbf{g} \sim \mathcal{N}(0, I_m)$. 
+The Gaussian measure of a body is defined as $$\gamma_m(S) = \mathbb{P}[\textbf{g} \in S] = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}$$ where $\textbf{g}$ is a standard Gaussian random vector in $\mathbb{R}^m$, i.e. $\textbf{g} \sim \mathcal{N}(0, I_m)$. 
 
-The proof of this theorem was non-constructive though, but nearly 20 years later, Dadush, Garg, Lovett and Nikolov showed that in order to get a constructive algorithm, all that is needed is a subgaussian distribution sampler. 
+Thus the idea of the theorem is that for any subset of the space big enough and set of vectors, one can find an assignment such that the sum of the vectors in the positive group minus the sum of the vectors in the negative group is in a dilatation of the big subset of the space. As the conditions are easily satisfied, that is a very powerful statement. It gave several bounds for various discrepancy theory problems.
+
+It is easy to see that for any bound smaller than $1/2$ we could find a counterexample, but it isn't easy to see that this is true for the bound of $1/2$. The original proof of this theorem was non-constructive though, so until recently, no algorithm was known to find the colorings whose existences are proved by the theorem. 
+
+Nearly 20 years later, Dadush, Garg, Lovett and Nikolov showed that in order to get a constructive algorithm, all that is needed is a subgaussian distribution sampler on $\{\sum_{i=1}^n\textbf{z}(i)\textbf{v}_i:\textbf{z}\in\{-1,1\}^n\}$.
 \begin{definition}\label{def_subgaussianity_intro}
-A random variable $X \in \mathbb{R}$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if $ \forall\lambda\in\mathbb{R}$:
-$$\mathbb{E}\left[e^{\lambda(X-\mathbb{E}[X])}\right]\leq e^{\sigma^2\lambda^2/2}$$
+A random vector $\textbf{Y} \in \mathbb{R}^m$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if for all $\bm{\theta} \in \mathbb{R}^m$:
+$$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^2\|\bm{\theta}\|_2^2/2}.$$
 \end{definition}
+Subgaussianity is discussed more in details in section \ref{results}.
 
 Here is their result:
 \begin{theorem}[\cite{construct}]\label{equivalence}
 Banaszczyk's Theorem (up to the constant) is equivalent to the following statement:\\
-Let $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^m$ of $\ell_2$ norm at most 1, with $\textbf{B}= (\textbf{v}_1, \dots, \textbf{v}_n) \in \mathbb{R}^{m \times n}$ and $K \subseteq \mathbb{R}^m$ a convex body  of Gaussian measure at least 1/2.
+Let $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^d$ of $\ell_2$ norm at most 1, with $\textbf{B}= (\textbf{v}_1, \dots, \textbf{v}_n) \in \mathbb{R}^{d \times n}$ and $K \subseteq \mathbb{R}^d$ a convex body  of Gaussian measure at least 1/2.
 Then, there exists $\textbf{z}_0 \in [-1,1]^n$ and there exists a distribution $D$ on $\{-1,1\}^n$, such that: 
 \begin{enumerate}
     \item  $\textbf{B}\textbf{z}_0 = \sum_{i=1}^n \textbf{z}_0(i)\textbf{v}_i \in K$\\
@@ -119,38 +122,39 @@ Then, there exists $\textbf{z}_0 \in [-1,1]^n$ and there exists a distribution $
     \item $\mathbb{P}_{\textbf{z} \sim D}[\sum_{i=1}^n (\textbf{z}(i)- \textbf{z}_0(i))\textbf{v}_i \in c(\sigma)K] \geq 1/2$ for some $c(\sigma)$.
 \end{enumerate}
 \end{theorem}
-In this last theorem, one can just pick $\textbf{z}_0=\textbf{0}$ because the gaussian measure bound forces it to be inside $K$, but finding the subgaussian distribution is far from trivial. The proof uses the Minimax theorem from Von Neumann \cite{neumann1928theorie}, turning the choice of the distribution in a game, and a result from Talagrand \cite{talagrand2005generic} on the norm of subgaussian vectors. In addition to all that, there is a complicated recentering procedure to show that the result still holds for non-symmetric bodies.
+In this last theorem, one can just pick $\textbf{z}_0=\textbf{0}$ because the gaussian measure bound forces it to be inside $K$, but finding the subgaussian distribution is far from trivial. The proof uses the minimax theorem from Von Neumann \cite{neumann1928theorie}, turning the choice of the distribution in a game, and a result from Talagrand \cite{talagrand2005generic} on the norm of subgaussian vectors. In addition to all that, there is a complicated recentering procedure to show that the result still holds for non-symmetric bodies.
 
-A couple years later, a team including three of the previous authors, Dadush, Garg and Lovett, joined by Bansal this time, actually found and analysed an algorithm to succesfully sample colorings that allows us to construct the colorings described by Banaszczyk in his work from my birth year. They call this algorithm the Gram-Schmidt walk, because it uses a procedure that can remind of Gram-Schmidt Orthogonalization. They proved that the vector of imbalances produced by the assignments of the Gram-Schmidt Walk are subgaussian with constant $\sigma^2=40$.
+A couple years later, a team including three of the previous authors, Dadush, Garg and Lovett, joined by Bansal this time, actually found and analysed an algorithm to successfully sample colorings that allows us to construct the colorings described by Banaszczyk in his work from 1998. They call this algorithm the Gram-Schmidt walk, as it uses a procedure that can remind of the Gram-Schmidt orthogonalization process. They proved that the vector of imbalances produced by the assignments of the Gram-Schmidt Walk are subgaussian with constant $\sigma^2=40$.
 
-While the Gram-Schmidt walk was originally described as a way to get a constructive algorithm for Theorem \ref{banaszczyk}, it was later also used for experiment design by Spielman, Harshaw, Zhang and Sävje in \cite{harshaw2019balancing}. In their setting, they're looking to separate experiment units into a control group and a treatment group.  They use the balancing power of the algorithm to explicitly navigate the tradeoff between experiment unit covariate balance, that is having two groups that are similar, and robustness of the design, that is being random enough to be on average well-balanced among unobserved covariates. They improved the constant in the subgaussianity result and proved several other results which let them document the expected behavior of their design.
+While the Gram-Schmidt walk was originally described as a way to get a constructive algorithm for Theorem \ref{banaszczyk} and thus produced constructive algorithms for many other discrepancy theory problems, it was later also used for experiment design by Spielman, Harshaw, Zhang and Sävje in \cite{harshaw2019balancing}. In their setting, they're looking to separate experiment units into a control group and a treatment group.  They use the balancing power of the algorithm to explicitly navigate the tradeoff between experiment unit covariate balance, that is having two groups that are similar, and robustness of the design, that is being random enough to be on average well-balanced among unobserved covariates. They improved the constant in the subgaussianity result and proved several other results which let them document the expected behavior of their design.
 
 In this work, we will try to understand the algorithm, think about how to modify it to achieve different goals, and what other things we could use it for.
 
-Tests were run in Jupyter notebooks through a self-written Python implementation of the Gram-Schmidt walk and other needed functions, available at \cite{github}.
+All tests and simulation found in this document were run in Jupyter notebooks through a self-written Python implementation of the Gram-Schmidt walk and other needed functions, available at \cite{github}.
 
 \section{Notation}
-There are a few notations that will be used several times in this document:
+There are a few notations that will appear several times in this document:
 \begin{itemize}
 \item $[m]$ refers to the set $\{1,\dots,m\}$.
-\item Every $\textbf{v}\in\mathbb{R}^d$ for some $d$ is seen as a column vector of $\mathbb{R}^{d\times 1}$ when it appears in a product, and for $i\in[d]$, $\textbf{v}(i)$ is the $i$th element of the vector $\textbf{v}$.
-\item $\textbf{e}_k\in\mathbb{R}^{n}$ will be the vector with only 0's except for a 1 at position $k$ for some $k\in[n]$. Note that in particular for $\textbf{M}\in\mathbb{R}^{n\times n}$, $\textbf{e}_k^T\textbf{M}$ is its $k$th row of $\textbf{M}$ and $\textbf{Me}_k$ is its $k$th column.
+\item Every $\textbf{v}\in\mathbb{R}^d$ for some dimension $d$ is seen as a column vector of $\mathbb{R}^{d\times 1}$ when it appears in a product, and for $i\in[d]$, $\textbf{v}(i)$ is the $i$th coordinate of $\textbf{v}$.
+\item $\textbf{e}_k\in\mathbb{R}^{n}$ is the vector with only 0's except for a 1 at position $k$ for some $k\in[n]$. Note that in particular for $\textbf{M}\in\mathbb{R}^{n\times n}$, $\textbf{e}_k^T\textbf{M}$ is the $k$th row of $\textbf{M}$ and $\textbf{Me}_k$ is its $k$th column.
 \item Given a condition $c$, $\mathds{1}_{c}$ = $\begin{cases}
             1 \textrm{ if }c\textrm{ is true}\\
             0 \textrm{ if }c\textrm{ is false}
-        \end{cases}$
+        \end{cases}$.
 \item Vectors and matrices are \textbf{bolded}.
 \end{itemize}
 
 \section{The Algorithm}
-The idea of the algorithm is that it will walk step by step in the hypercube of dimension $n$, $[-1,1]^n$. We start at come initial fractional coloring $\textbf{z}_0\in[-1,1]^n$, then at each step at least one additional coordinate will become 1 or -1, that is we will move to a facet. Once a  coordinate is -1 or 1, it won't move for the rest of the algorithm, thus after step $i$ our fractional coloring will be in the intersection of at least $i$ different facets. From all this, we can see that the algorithm will reach a non fractional coloring $\textbf{z}_t\in\{-1,1\}^n$ in at most $n$ steps.
+\subsection{General idea}
+The idea of the algorithm is that it walks step by step in the hypercube of dimension $n$, $[-1,1]^n$. We start at some initial fractional coloring $\textbf{z}_0\in[-1,1]^n$. At each step, the coloring moves in the hypercube until at least one additional coordinate becomes 1 or -1, that is it moves to a facet of the hypercube it wasn't on yet. Once a coordinate is set to -1 or 1, it won't move for the rest of the algorithm, thus after step $i$ our fractional coloring is in the intersection of at least $i$ different facets. From all this, we can see that the algorithm reaches a non fractional coloring $\textbf{z}_t\in\{-1,1\}^n$ in at most $n$ steps.
 
-The question now becomes "how to choose the facet to move to ?". To do so, we will find an update direction $\textbf{u}_t$ such that $\sum_{i=1}^n\textbf{u}_t(i)\textbf{v}_i$ is small, and update $\textbf{z}_t$ into $\textbf{z}_{t+1}=\textbf{z}_t+\delta_t\textbf{u}_t$. $\delta_t\in\mathbb{R}$ will be chosen so that $\textbf{z}_{t+1}\in[-1,1]^n$ and at least one additional coordinate now has absolute value 1. Moreover, $\delta_t$ will be chosen randomly among the two potential candidates that fulfill the previously mentioned condition, and the distribution will be engineered so that its expectation is 0 and no direction is favored. Thus, ending at $\textbf{z}_t\in\{-1,1\}^n$ or at $-\textbf{z}_t\in\{-1,1\}^n$ will be equally likely.
+The question now becomes "how to choose the facet to move to ?". To do so, the algorithm finds an update direction $\textbf{u}_t\in\mathbb{R}^n$ such that $\sum_{i=1}^n\textbf{u}_t(i)\textbf{v}_i$ is small, and updates $\textbf{z}_t$ into $\textbf{z}_{t+1}=\textbf{z}_t+\delta_t\textbf{u}_t$. $\delta_t\in\mathbb{R}$ is chosen so that $\textbf{z}_{t+1}\in[-1,1]^n$ and at least one additional coordinate now has absolute value 1. Moreover, $\delta_t$ is chosen randomly among the two potential candidates that fulfill the previously mentioned condition, and the distribution between the two candidates is engineered so that its expectation is 0 and no direction is favored. Thus before the algorithm starts, ending at $\textbf{z}_t\in\{-1,1\}^n$ or at $-\textbf{z}_t\in\{-1,1\}^n$ is equally likely.
 
-%Define \textbf{v}_perp A_i etc
-The algorithm will take as input $\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$, and an initial coloring $\textbf{z}_0\in[-1,1]^n$. It will consist of $n$ time steps. At the end of time step $t$, we obtain a fractional coloring $\textbf{z}_t\in[-1,1]^n$. An element $i \in [n]$ is said to be \textit{alive} at time $t$ if $|\textbf{z}_{t-1}(i)|<1$, and \textit{fixed} otherwise. Let $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$. The \textit{pivot} $p(t)$ is an element that is alive at time $t$, which can for example be chosen randomly or as the largest indexed element, among the elements that are still alive. We define the set $V_t$ as $\Span\{\textbf{v}_i:i\in A_t,i\not=p(t)\}$. We denote by $\Pi_{V_t^\perp}$ the projection operator on $V_t^\perp$. Finally, we will need $\textbf{v}^{\perp}(t)=\Pi_{V_t^\perp}(\textbf{v}_{p(t)})$ as the projection of the pivot vector over all alive vectors. We are now ready to discover the actual pseudocode of the algorithm.
+\subsection{Pseudocode}
+The algorithm takes as input $\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$, and an initial coloring $\textbf{z}_0\in[-1,1]^n$. A run of the algorithm consists of at most $n$ time steps. At the end of each time step $t$, the algorithm obtains a fractional coloring $\textbf{z}_t\in[-1,1]^n$. An element $i \in [n]$ is said to be \textit{alive} at time $t$ if $|\textbf{z}_{t-1}(i)|<1$, and \textit{fixed} otherwise. Let $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$. The \textit{pivot} $p(t)$ is an element that is alive at time $t$, which can for example be chosen randomly or as the largest indexed element, among the elements that are still alive. We define the set $V_t$ as $\Span\{\textbf{v}_i:i\in A_t,i\not=p(t)\}$. We denote by $\Pi_{V_t^\perp}$ the projection operator on $V_t^\perp$. Finally, we need $\textbf{v}^{\perp}(t)=\Pi_{V_t^\perp}(\textbf{v}_{p(t)})$ as the projection of the pivot vector over all alive vectors. We are now ready to discover the actual pseudocode of the algorithm.
 
-It produces an assignment $z$ such that the corresponding vector of imbalances, also referred to as the output sum of groups, has a small norm. Another way to describe it is that it divides the vectors in two groups such that the sum of the vectors in each group are pretty close.
+It produces an assignment $\textbf{z}$ such that the corresponding vector of imbalances, also referred to as the output sum of groups, has a small norm. Another way to describe it is that it divides the vectors in two groups such that the sum of the vectors in each group are pretty close.
 
 \begin{algorithm}[H]\label{walk}
 {\fontsize{10}{12}
@@ -189,37 +193,49 @@ Throughout the text, we will refer to this algorithm by its initials as the \tex
 %The interesting part is how to choose the direction and length of the move in a smart way to stay as balanced as possible. Defining $\textbf{v}_\perp$ as the least we will move while pushing towards coloring the pivot, it then follows that we want to push as much as possible in that direction until an element gets colored, and our $\textbf{v}_\perp$ thus changes.
 
 \subsection{Observations}
-According to the choice of $\delta_t$, it is clear that at least one element gets frozen at each time step as $\delta_t$ is maximal such that $\textbf{z}_t+\delta_t\textbf{u}_t\in[-1,1]^n$. Thus the GSW algorithm runs in at most $n$ iterations. If we chose $\delta_t$ according to some more complicated distribution, it wouldn't be possible to guarantee a coloration per time step and the algorithm would lose most of its appeal and simplicity. Additionally, the update direction depends on the elements that are alive. Thus if they did not change between two time steps, the update direction would not change either and we would just keep moving along the same line until we hit a border, which is why choosing one of the two maximal valid lengths, $\delta_+$ or $\delta_-$, is the best method to choose the length of the move.
+Most if not all of these observations are already available in \cite{blues}. We include them here to help the reader understand the algorithm through these specific properties.
+
+According to the choice of $\delta_t$, it is clear that at least one element gets frozen at each time step as $\delta_t$ is maximal such that $\textbf{z}_t+\delta_t\textbf{u}_t\in[-1,1]^n$. Thus, as fixed elements stay fixed until the end of the algorithm once they are fixed, the GSW runs in at most $n$ iterations. If we chose $\delta_t$ according to some more complicated distribution, it wouldn't be possible to guarantee a coloration per time step and the algorithm would lose most of its appeal and simplicity. Additionally, the update direction depends on the elements that are alive. Thus if they did not change between two time steps, the update direction would not change either and we would just keep moving along the same line until we hit a border, which is why choosing one of the two maximal valid lengths, $\delta_t^+$ or $\delta_t^-$, is the best method to choose the length of the move.
 
 We can see that
 $$\mathbb{E}[\delta_t \mid \delta_t^-, \delta_t^+] = \delta_t^+\frac{-\delta_t^-}{\delta_t^+-\delta_t^-} + \delta_t^- \frac{\delta_t^+}{\delta_t^+-\delta_t^-} =0$$
-so the choice of delta and thus, as mentioned previously, the sequence of fractional coloring produced by the algorithm before its termination is indeed a martingale. This gives a sort of unbiasedness to the algorithm which is desirable when dividing elements into groups, as it means that when the algorithm starts from $\textbf{z}_0=\textbf{0}$, each vector has an equal probability of ending in each group. It also means that we can tune the final outcome through the starting coloring $\textbf{z}_0$.
+so the choice of delta and thus, as mentioned previously, the sequence of fractional coloring produced by the algorithm before its termination is indeed a martingale. This gives a sort of unbiasedness to the algorithm which is desirable when dividing elements into groups, as it means that when the algorithm starts from $\textbf{z}_0=\textbf{0}$, each vector has an equal probability of ending in each group. It also means that we can tune the final outcome through the starting coloring $\textbf{z}_0$. Indeed, if $\textbf{z}_0(i)=2\textbf{p}(i)-1$, we can see thanks to the martingale property that $\mathbb{P}(\textbf{z}_n(i)=1)=\textbf{p}(i)$.
 
-One can see that $\textbf{v}^\perp _t$ is simply the last vector of the Gram-Schmidt orthogonalization of the ordered sequence of vectors $(\textbf{v}_i)_{i\in A_t}$. This is where the name of the algorithm comes from.
-
-It is important to notice that $\textbf{v}^{\perp}_t$ depends on $t$ and not just on $\textbf{v}_{p(t)}$, as $A_t$ can change while the pivot $p(t)$ stays the same.
+It is important to notice that $\textbf{v}^{\perp}(t)$ depends on $t$ and not just on $\textbf{v}_{p(t)}$, as $A_t$ can change while the pivot $p(t)$ stays the same.
 
 The update direction $\textbf{u}_t$ satisfying our conditions always exists because
 \begin{align*}
-        \textbf{v}^\perp_t = \textbf{v}_{p(t)} + \sum_{i \in A_t \setminus \{p(t)\}} \textbf{u}_t(i)\textbf{v}_i\\
-        \sum_{i \in A_t \setminus \{p(t)\}} \textbf{u}_t(i)\textbf{v}_i = -(\textbf{v}_{p(t)} - \textbf{v}^\perp_t) \in V_t
+        \textbf{v}^\perp(t) &= \textbf{v}_{p(t)} + \sum_{i \in A_t \setminus \{p(t)\}} \textbf{u}_t(i)\textbf{v}_i\\
+        \Leftrightarrow\sum_{i \in A_t \setminus \{p(t)\}} \textbf{u}_t(i)\textbf{v}_i &= -\left(\textbf{v}_{p(t)} - \textbf{v}^\perp(t)\right) \in V_t
 \end{align*}
 
 The vector $\textbf{u}_t$ is defined with $\textbf{u}_t(i)=0$ if $i$ is frozen, $\textbf{u}_t(p(t))=1$ and for the rest of the indices we have that :
 \begin{align*}
 \textbf{v}^\perp(t) &= \textbf{v}_{p(t)} + \sum_{i \in A_t \setminus \{p(t)\}} \textbf{u}_t(i)\textbf{v}_i\\
-\Leftrightarrow \textbf{v}^\perp(t) &= 1 \cdot \textbf{v}_{p(t)} + \sum_{i \in A_t \setminus \{p(t)\}} \textbf{u}_t(i)\textbf{v}_i + \sum_{i \notin A_t} 0 \cdot \textbf{v}_i\\
-\Leftrightarrow \textbf{v}^\perp(t) &= \sum_{i=1}^n \textbf{u}_t(i)\textbf{v}_i
+&= 1 \cdot \textbf{v}_{p(t)} + \sum_{i \in A_t \setminus \{p(t)\}} \textbf{u}_t(i)\textbf{v}_i + \sum_{i \notin A_t} 0 \cdot \textbf{v}_i\\
+&= \sum_{i=1}^n \textbf{u}_t(i)\textbf{v}_i
 \end{align*}
 Thus at each step the vector of imbalances moves by $\delta_t\textbf{v}^\perp(t)$.
 
-$\textbf{v}^\perp_t$ will correspond to the direction that the output of the random walk will move in during time step t, ie if the matrix $\textbf{B}$ contains the input vectors as columns, $\textbf{v}^\perp_t = \textbf{Bu}_t$. So the algorithm is greedily optimal in the sense that the update direction is trying not to move away from $\textbf{0}$ as much as possible while moving towards a vertex of the hypercube.
+$\textbf{u}_t = \arg\min_{\textbf{u} \in U} \|\textbf{Bu}\|$ where $U$ is the set of vectors in $\mathbb{R}^n$ such that $\textbf{u}(i) = 0$ $\forall i \not\in A_t$ and $\textbf{u}(p(t))=1$. This means that one can completely forget about $\textbf{v}^\perp(t)$ and system solving and just use least squares at each step to find the coordinates of the update directions that are alive but not the pivot through the following formula $$\textbf{u}_t(A_t\setminus\{p(t)\})=\arg\min_{\textbf{u}_t}\|\textbf{v}_{p(t)}+\sum_{i\in A_t\setminus\{p(t)\}}\textbf{u}_t(i)\textbf{v}_i\|^2=\left(\textbf{B}_t^T\textbf{B}_t\right)^{-1}\textbf{B}_t^T\textbf{v}_{p(t)}$$ where $\textbf{B}_t\in\mathbb{R}^{d\times(|A_t|-1)}$ is the matrix containing all vectors that are alive except the pivot vector as columns. In some cases when $\textbf{v}^\perp(t)=\textbf{0}$, there are infinitely many solutions that minimize our objective function, so it would be interesting to add some conditions or do some quadratic programming to try to get a $\textbf{u}_t$ that has some desirable properties. That is investigated a bit in section \ref{results_norm_affect_when}.
 
-$\textbf{u}_t = \arg\min_{\textbf{u} \in U} \|\textbf{Bu}\|$ where $U$ is the set of vectors in $\mathbb{R}^n$ such that $\textbf{u}(i) = 0$ $\forall i \not\in A_t$ and $\textbf{u}(p(t))=1$. This means that one can completely forget about $\textbf{v}^\perp(t)$ and system solving and just use least square at each step to find the coordinates of the update directions that aren't alive or the pivot through the following formula $$\textbf{u}_t(A_t\setminus\{p(t)\})=\arg\min_{\textbf{u}_t}\|\textbf{v}_{p(t)}+\sum_{i\in A_t\setminus\{p(t)\}}\textbf{u}_t(i)\textbf{v}_i\|^2=(\textbf{B}_t^T\textbf{B}_t)^{-1}\textbf{B}_t^T\textbf{v}_{p(t)}$$ where $\textbf{B}_t$ is the matrix containing all vectors that are alive except the pivot vector as columns. In some case, when $\textbf{v}^\perp(t)=\textbf{0}$ there are infinitely many solutions that minimize our objective function, so it would be interesting to add some conditions or do some quadratic programming to try to get a $\textbf{u}_t$ that has some desirable properties. That is investigated a bit in section \ref{results_norm_affect_when}.
+Thanks to the previous paragraph, we can see that $\textbf{v}^\perp(t)$ corresponds to the direction that the vector of imbalances will move toward during time step $t$, that is if the matrix $\textbf{B}$ contains the input vectors as columns, $\textbf{v}^\perp(t) = \textbf{Bu}_t$. So the algorithm is greedily optimal in the sense that the update direction is trying not to move away from $\textbf{0}$ as much as possible while moving towards a vertex of the hypercube.
 
-Another interesting point is that one can choose each new pivot at random among alive elements. This is equivalent to shuffling the input vectors before inputing them to the walk, and does not matter when doing a single run. One thing that can be interesting though, is seeing how the choice of the pivot affects the behavior of the algorithm, as the choice of the pivot doesn't need to follow a specific rule except for one small result about confidence intervals from \cite{harshaw2019balancing}. Thus, trying to optimize the algorithm for our needs by tweaking the choice of the pivot could be an interesting direction to explore and is explored several times in section \ref{exp_and_prop}.
+Another interesting point is that one could choose each new pivot randomly among alive elements. This is equivalent to shuffling the input vectors before inputing them to the walk. When doing multiple runs with the same input vector set, we will want to shuffle the vectors unless we have reasons to prefer a specific pivot ordering, this way we ensure a greater variability of vector of imbalances. One thing that can be interesting though, is seeing how the choice of the pivot affects the behavior of the algorithm, as the choice of the pivot doesn't need to follow a specific rule except for one small result about confidence intervals from \cite{harshaw2019balancing}. Thus, trying to optimize the algorithm for our needs by tweaking the choice of the pivot could be an interesting direction to explore and is explored several times in section \ref{exp_and_prop}.
 
-\subsection{Basic Variants}\label{basic_variants}
+\subsubsection{Connection to the Gram-Schmidt orthogonalization process}
+
+One can see that $\textbf{v}^\perp (t)$ is the last vector of the Gram-Schmidt orthogonalization of the ordered sequence of vectors $(\textbf{v}_i)_{i\in A_t}$. This is where the name of the algorithm comes from. The authors of \cite{harshaw2019balancing} detail this connection more in depth in their first appendix by defining a permutation $\sigma$ that indicates us the \textit{reverse order} of when a vector was decided in the algorithm, that is when it was chosen as the pivot or colored without being the pivot. Thus $\sigma(n)$ is the very first pivot, and if that pivot is colored in the first step, $\sigma(n-1)$ is the second pivot. If that isn't the case, $\sigma(n-1)$ is the unit colored in the first step. 
+
+From $\sigma$, they define the Gram-Schmidt orthogonalization of the input vectors in the order $\sigma(1),\sigma(2),\dots,\sigma(n)$ as usual: $$ \textbf{w}_{\sigma(1)}=\frac{\textbf{v}_{\sigma(1)}}{\|\textbf{v}_{\sigma(1)}\|},\quad\textbf{w}_{\sigma(r)}=\frac{\textbf{v}_{\sigma(r)}-\sum_{i=1}^{r-1}\langle\textbf{w}_{\sigma(i)},\textbf{v}_{\sigma(r)}\rangle\textbf{w}_{\sigma(i)}}{\|\textbf{v}_{\sigma(r)}-\sum_{i=1}^{r-1}\langle\textbf{w}_{\sigma(i)},\textbf{v}_{\sigma(r)}\rangle\textbf{w}_{\sigma(i)}\|}\textrm{ for }r=2\dots,n.$$
+
+Let $S_{k}=\{i\in[n]:p(i)=k\}$ be the pivot phase of $i$, that is the set of time steps during which $\textbf{v}_i$ is the pivot. Then, defining $l_t$ and $g_t$ as the least and greatest re-ordering positions that were decided during the current pivot phase before the third line of the GSW at iteration $t$, they can express $\textbf{v}^\perp (t)$ as the projection of $\textbf{v}_{p(t)}$ on $\textbf{w}_{\sigma(l_t)},\dots,\textbf{w}_{\sigma(g_t)}$, that is we have $$\textbf{v}^\perp (t)=\textbf{Bu}_t=\sum_{r=l_t}^{g_t}\langle\textbf{w}_{\sigma(r)},\textbf{v}_{p(t)}\rangle\textbf{w}_{\sigma(r)}.$$
+
+This characterization is, among other things, what allows them to improve the subgaussianity result from \cite{blues}.
+
+%Let $S_{k}=\{i\in[n]:p(i)=k\}$ be the pivot phase of $i$, that is the set of time steps during which $\textbf{v}_i$ is the pivot. If we define $C_k$ to be the set of indices whose vectors were colored in a step from $S_k$, one can see that $\textbf{v}^\perp (t)$ is the projection of $\textbf{v}_{p(t)} on the subspace spanned by the vectors $(\textbf{w}_i)_{i\in C_k}$
+
+\subsection{Basic variants}\label{basic_variants}
 One pretty close variant would always choose the delta with the smallest absolute value at the end of line 4, instead of $\delta_t$ being a martingale. We will denote the algorithm with this modification as the Deterministic Gram-Schmidt Walk, or DGSW. In case of equality between the two absolute value, the algorithm would still pick randomly. The results from section \ref{results} do not apply to this variant, but in practice it is pretty close to the classical GSW, except it is expectedly returning slightly shorter vector of imbalances as we always pick the shorter move. Notice that there is still randomness in the order of the pivots, which can be done either by shuffling the vectors before the run or by choosing the pivot randomly among alive elements when needed.
 
 Another really different variant which we will compare a bit with the GSW in this document is the following algorithm:
@@ -240,7 +256,7 @@ Another really different variant which we will compare a bit with the GSW in thi
     Output $\textbf{a}\in\{-1,1\}^n$.
     }%
     \end{algorithm}
-This simple algorithm that we call the Naive Walk can have a random component through a pre-input shuffling of the vectors, similarly to the DGSW. It doesn' actually compare badly to the GSW in term of norm of the resulting vectors of imbalances, as can be seen via the experiment in section \ref{how_good_at_minimizing_disc}. 
+This simple algorithm that we call the naive walk can have a random component through a pre-input shuffling of the vectors, similarly to the DGSW. It doesn' actually compare badly to the GSW in term of norm of the resulting vectors of imbalances, as can be seen via the experiment in section \ref{how_good_at_minimizing_disc}. 
 
 Another way to do it would be to choose the sign according to a distribution that is inversely proportional to the norm of the potential updated $\textbf{s}$ vector, or to greedily try every assignment of every vector at each step and add the assignment that results in the smallest norm, or do a distribution based on how big the norm would be if an assignment was added. In the end, I wanted to compare with a simple algorithm and chose this one.
 
@@ -248,12 +264,12 @@ Another way to do it would be to choose the sign according to a distribution tha
 %One in 3d, then the graph with all kind of different outputs on it
 \begin{figure}[h!]
 \include{4types_3}
-\caption{Plot of vectors of imbalances of group assignments from the GSW, its input vectors, and a centered normal with $\textbf{Cov}=\textbf{I}_2$. There are 100 input vectors and 100 of each kind of point, everything is in dimension 2. The same plot with vector of imbalances from random assignment is visible in Figure \ref{4types_4} for comparison.}
+\caption{Plot of vectors of imbalances of group assignments from the GSW, its input vectors, and samples from a centered normal with $\textbf{Cov}=\textbf{I}_2$ to illustrate subgaussianity. There are 100 input vectors and 100 of each kinds of point, everything is in dimension 2. The same plot with vectors of imbalances from random assignments is visible in figure \ref{4types_4} for comparison.}
 \label{4types_3}
 \end{figure}
 \begin{figure}[h!]
 \include{4types_4}
-\caption{Plot of ouput sum of group assignments from the GSW, its input vectors, and a centered normal with $\textbf{Cov}=\textbf{I}_2$ similarly to Figure \ref{4types_3}, except we added the vectors of imbalances of random group assignments for comparison. There are 100 input vectors and 100 of each kind of point, everything is in dimension 2.}
+\caption{Plot of vectors of imbalances of group assignments from the GSW, its input vectors, and samples from a centered normal with $\textbf{Cov}=\textbf{I}_2$ similarly to figure \ref{4types_3}, except we added the vectors of imbalances of random group assignments for comparison. There are 100 input vectors and 100 of each kinds of point, everything is in dimension 2.}
 \label{4types_4}
 \end{figure}
 
@@ -263,16 +279,16 @@ Another way to do it would be to choose the sign according to a distribution tha
 \multido{\i=0+1}{3}{
 \includegraphics[width=12.7cm]{3d_example/gswalkboth\i.pdf}
 }
-\caption{Example of a GSW run in with 3 vectors in 2 dimension. The left part shows the cube where the coloring is living, and the right part shows the vector of imbalances and the input vectors.}
+\caption{Example of a GSW run with 3 vectors in 2 dimension. The left part shows the cube where the coloring is living, and the right part shows the vector of imbalances and the input vectors.}
 \label{3d_example}
 
 \end{figure}
 
 
-\subsection{Results}\label{results}
+\subsection{Subgaussianity result}\label{results}
 %definition for variable, then examples and explain what it means and give alternative conditions and then define for vector
 We will first define subgaussianity, which is a way to quantify how centered a random variable or vector is and state a result showing that the vector of imbalances produced by a GSW run is actually $1$-subgaussian.
-\begin{definition}[same as definition \ref{def_subgaussianity_intro}]\label{def_subgaussianity}
+\begin{definition}\label{def_subgaussianity}
 A random variable $X \in \mathbb{R}$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if $\forall\lambda\in\mathbb{R}$:
 $$\mathbb{E}\left[e^{\lambda(X-\mathbb{E}[X])}\right]\leq e^{\sigma^2\lambda^2/2}$$
 \end{definition}
@@ -280,16 +296,18 @@ For example, any $\sigma^2$-subgaussian random variable $X$ has $\mathbb{V}[X]\l
 \begin{definition}[Equivalent to definition \ref{def_subgaussianity}]
 A random variable $X$ is said to be $\sigma$-subgaussian if $\forall t>0,$ $\max\{\mathbb{P}(X\geq t),\mathbb{P}(X\leq -t)\}\leq exp\left(\frac{-t^2}{2\sigma^2}\right)$.
 \end{definition}
-This definition is derived from the first one via Chernov's bound. It lets us derive the same kind of useful inequalities about subgaussian random variables as about gaussian variables, and gaussian variables are well-behaved and well-studied. 
+This definition is derived from the first one via Chernov's bound. It lets us derive the same kind of useful inequalities about subgaussian random variables as about gaussian variables, which, given that gaussian variables are well-behaved and well-studied, is a desirable feature.
 
-There exists several other equivalent definitions, but the first one is the one-dimensional version of the definition we will use for subgaussianity for random vectors, and the second one helps us visualize what a subgaussian random variable actually looks like. Now we can adapt this notion to random vectors:
-\begin{definition}
+There exists several other equivalent definitions, but the first one is the one-dimensional version of the definition we will use for subgaussianity for random vectors, and the second one helps us understand how subgaussian random variables are related to gaussian variables. 
+
+Now we can adapt the notion of subgaussianity to random vectors:
+\begin{definition}[same as definition \ref{def_subgaussianity_intro}]
 A random vector $\textbf{Y} \in \mathbb{R}^m$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if for all $\bm{\theta} \in \mathbb{R}^m$:
-$$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^2\|\bm{\theta}\|_2^2/2}$$ \\
+$$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^2\|\bm{\theta}\|_2^2/2}.$$
 \end{definition}
-This definition will help us give a concrete result on the balancing power of the GSW. A random vector being $1$-subaussian means that it is less spread that a gaussian with covariance matrix being the identity. We can see that for the vectors of imbalances of the GSW, on Figure \ref{4types_3}, it seems to indeed be the case. This was indeed proved, first for $\sigma^2=40$ in \cite{blues} and then for $\sigma^2=1$ in \cite{harshaw2019balancing}.
+This definition will help us give a concrete result on the balancing power of the GSW. A random vector being $1$-subaussian means that it is less spread that a gaussian with covariance matrix being the identity. We can see that for the vectors of imbalances of the GSW, on figure \ref{4types_3}, it seems to indeed be the case. This was proved, first for $\sigma^2=40$ in \cite{blues} and then for $\sigma^2=1$ in \cite{harshaw2019balancing}.
 \begin{theorem}[\cite{harshaw2019balancing}]
-    For $\textbf{z}$ sampled via the Gram-Schmidt walk design, we have that $\textbf{Bz}$ is subgaussian with parameter $\sigma^2=1$.%:$$\mathbb{E}[exp(\langle\textbf{Bz},\textbf{v}\rangle)]\leq exp(\|\textbf{v}\|^2_2/2)\quad\forall\textbf{v}\in\mathbb{R}^{n+d}$$
+    For $\textbf{z}$ sampled via the Gram-Schmidt walk, we have that $\textbf{Bz}$ is subgaussian with parameter $\sigma^2=1$.%:$$\mathbb{E}[exp(\langle\textbf{Bz},\textbf{v}\rangle)]\leq exp(\|\textbf{v}\|^2_2/2)\quad\forall\textbf{v}\in\mathbb{R}^{n+d}$$
 \end{theorem}
 This result is necessary to prove that the GSW indeed gives a constructive algorithm for Theorem \ref{banaszczyk}, by using Theorem \ref{equivalence}.
 
@@ -305,8 +323,8 @@ This result is necessary to prove that the GSW indeed gives a constructive algor
 %matrix of the vector of imbalances $Bz$ is bounded in the Loewner order by the orthogonal projection onto the subspace spanned by the columns of $B$: $$Cov(Bz)\preceq P = B(B^TB)^\dagger B^T,$$
 %where we recall that $M^\dagger$ is the pseudoinverse of the matrix $M$.
 %\end{theorem}
-\section{Fast computations}\label{fast_computations}
-Thanks to an original idea from professor Marcus, one can make the GSW run faster than the trivial implementation which takes time $O(n^3d)$ down to $O(n^2d + n^3)$, similarly to what was done in \cite{harshaw2019balancing} using Cholesky factorizations, except the proofs are easier. The basic idea is similar: at the beginning of a GSW run, we compute some matrices and then during each step of the algorithm, we use only rank one updates to maintain them and derive the update direction from them at each iteration. This results in the removal of an $n$ factor from the asymptotic running time since rank-one update can be computed in quadratic time rather than the cubic time necessary to compute matrix multiplications and inverses.
+\section{Fast Computations}\label{fast_computations}
+Thanks to an original idea from professor Marcus, one can make the GSW run faster than the trivial implementation which takes time $O(n^3d)$ down to $O(n^2d + n^3)$, similarly to what was done in \cite{harshaw2019balancing} using Cholesky factorizations, except the proofs are in our opinion easier to understand. The general idea is similar: at the beginning of a GSW run, we compute some matrices and then during each step of the algorithm, we use only rank one updates to maintain them and derive the update direction from them at each iteration. This results in the removal of an $n$ factor from the asymptotic running time since rank-one update can be computed in quadratic time rather than the cubic time necessary to compute matrix multiplications and inverses.
 
 We first remind the definition of the matrix pseudoinverse:
 \begin{definition}
@@ -322,7 +340,7 @@ The pseudoinverse is basically a generalization of the inverse for singular and 
 
 For some set $S\subset\{1,\dots,n\}$, let $\textbf{I}_S\in\mathbb{R}^{n\times n}$ be the diagonal $n\times n$ matrix with $\textbf{I}_S(i,i) =1$ if $i\in S$ and $0$ otherwise, and $\textbf{B}_S\in\mathbb{R}^{d\times n}$ be $\textbf{BI}_S$ where $\textbf{B}$ is as previously the matrix containing the input vectors as columns. We define $\textbf{C}_S\in\mathbb{R}^{n\times d}$ to be such that $\textbf{C}_S\textbf{B}_S=\textbf{I}_S$ and if $i\not\in S$, the $i$th row of $\textbf{C}_S$ is $\textbf{0}$. That is, the rows of $\textbf{C}_S$ whose index are in $S$ are the pseudo-inverse of the corresponding columns in $\textbf{B}_S$. Finally, $\textbf{D}_S\in\mathbb{R}^{n\times n}$ is $\textbf{C}_S\textbf{C}_S^T$.
 
-This technique necessitates that the dimension of the space spanned by the input vectors is at most the dimension $d$ of the input vectors, as otherwise $\textbf{C}_S$ doesn't exist. One way to adapt it to the other cases is to add an identity matrix multiplied by some small factor at the bottom of the $\textbf{B}_S$ matrix. That way, we can reduce it to the case where the space spanned by the vectors is large enough, and the results differ only very slightly from those we'd obtain via conventional computational methods. This technique does introduce some numerical issues for big $n$ and $d$ though, and it seems preferable to use a more conventional implementation of the GSW in this case. Another way would be to use a parameter and basically apply the GSW design from\cite{harshaw2019balancing} with a very small $\phi$.
+This technique necessitates that the dimension of the space spanned by the input vectors is at most the dimension $d$ of the input vectors, as otherwise $\textbf{C}_S$ doesn't exist. One way to adapt it to the other cases is to add an identity matrix multiplied by some small factor at the bottom of the $\textbf{B}_S$ matrix. That way, we can reduce it to the case where the space spanned by the vectors is large enough, and the results differ only very slightly from those we'd obtain via conventional computational methods. This technique does introduce some numerical issues for big $n$ and $d$ though, and it seems preferable to use a more conventional implementation of the GSW in this case. Another way would be to use a parameter and basically apply the GSW design from\cite{harshaw2019balancing} with a very small $\phi$, which would be similar to the previous technique outside of the scale.
 
 Here are the rank one updates that let us compute our matrices for some $S'=S\setminus\{k\}$.
 \begin{lemma}\label{update_lemma}
@@ -355,7 +373,7 @@ Now let's see why this is useful, that is, how to compute $\textbf{v}^\perp(t)$ 
 Assume we're currently in a step of the GSW where the active vectors are $A_t=\{\textbf{v}_s:s\in S\}$, and $\textbf{v}_k\in A_t$ is the pivot. If $\textbf{d}_k$ and $\textbf{c}_k$ are defined similarly as in Lemma \ref{update_lemma}, we have that $$\textbf{v}^\perp(t)=\frac{\textbf{c}_k}{\|\textbf{c}_k\|^2}\textrm{ and }\textbf{u}_t=\frac{\textbf{d}_k}{\textbf{d}_k(k)}.$$
 \end{lemma}
 \begin{proof}
-Let $S'=S\setminus \{k\}$. Starting from the definition of $\textbf{v}^\perp(t)$ with pivot $k$, we have that \begin{equation*}\begin{WithArrows}
+Let $S'=S\setminus \{k\}$. Starting from the definition of $\textbf{v}^\perp(t)$ with pivot $p(t)=k$, we have that \begin{equation*}\begin{WithArrows}
 \textbf{v}^\perp(t)&=\Pi_{V_t^\perp}(\textbf{v}_k)\Arrow{$\Span V_t\cup V_t^\perp=\mathbb{R}^d$}\\
 &=\textbf{v}_k-\Pi_{V_t}(\textbf{v}_k)\Arrow{Definition of $\Pi_{V_t}$ with pivot $k$}\\
 &=\textbf{v}_k-\textbf{B}_{S'}\textbf{C}_{S'}\textbf{v}_k\Arrow{Lemma \ref{update_lemma}}\\
@@ -368,32 +386,32 @@ Let $S'=S\setminus \{k\}$. Starting from the definition of $\textbf{v}^\perp(t)$
 &=\textbf{v}_k+\frac{1}{\textbf{d}_k(k)}\left(\textbf{B}_{S}-\textbf{v}_k\textbf{e}_k^T\right)\textbf{C}_S\textbf{c}_k\\
 &=\textbf{v}_k+\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S}\textbf{C}_S\textbf{c}_k^T-\frac{1}{\textbf{d}_k(k)}\textbf{v}_k\textbf{c}_k^T\textbf{c}_k\Arrow{$\textbf{D}_S=\textbf{C}_S\textbf{C}_S^T$}\\
 &=\textbf{v}_k+\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S}\textbf{C}_S\textbf{c}_k^T-\frac{\textbf{d}_k(k)}{\textbf{d}_k(k)}\textbf{v}_k\\
-&=\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S}\textbf{C}_S\textbf{c}_k^T\Arrow{Pseudo-inverse properties}\\
+&=\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S}\textbf{C}_S\textbf{c}_k^T\Arrow{Pseudo-inverse definition}\\
 &=\frac{1}{\textbf{d}_k(k)}(\textbf{B}_{S}\textbf{C}_S)^T\textbf{c}_k^T\Arrow{$(AB)^T=B^TA^T$}\\
-&=\frac{1}{\textbf{d}_k(k)}\textbf{C}_S^T\textbf{B}_{S}^T\textbf{c}_k^T\Arrow{Pseudo-inverse properties}\\
+&=\frac{1}{\textbf{d}_k(k)}\textbf{C}_S^T\textbf{B}_{S}^T\textbf{c}_k^T\Arrow{Pseudo-inverse definition}\\
 &=\frac{1}{\textbf{d}_k(k)}\textbf{c}_k^T\Arrow{$\textbf{D}_S=\textbf{C}_S\textbf{C}_S^T$}\\
 &=\frac{1}{\|\textbf{c}_k\|^2}\textbf{c}_k^T
 \end{WithArrows}\end{equation*}
 
 For the second part, we have that $\textbf{u}_t$ is the solution to the system \begin{align*}\textbf{u}_t(k) =1\\
             \textbf{u}_t(i) =0 \text{ if } i \notin A_t\\
-            \textbf{v}^\perp(t) = \textbf{v}_{k} + \sum_{i \in A_t\setminus\{p(t)\}} \textbf{u}_t(i)\textbf{v}_i=\textbf{B}_Su_t\end{align*}
+            \textbf{v}^\perp(t) = \textbf{v}_{k} + \sum_{i \in A_t\setminus\{p(t)\}} \textbf{u}_t(i)\textbf{v}_i=\textbf{B}_S\textbf{u}_t\end{align*}
 But we have that $$\textbf{v}^\perp(t)=\frac{\textbf{c}_k}{\|\textbf{c}_k\|^2}=\frac{\textbf{C}_S^T\textbf{e}_k}{\|\textbf{c}_k\|^2}$$
 if we multiply by $\textbf{C}_S$ we get $\frac{\textbf{C}_S\textbf{C}_S^T\textbf{e}_k}{\|\textbf{c}_k\|^2}=\textbf{u}_t$ But as $\textbf{C}_S\textbf{C}_S^t=\textbf{D}_S$ and $\|\textbf{c}_k\|^2=\langle \textbf{c}_k,\textbf{c}_k\rangle=\textbf{d}_k(k)$, we have that indeed $\frac{\textbf{d}_k}{\textbf{d}_k(k)}=\textbf{u}_t$.
 \end{proof}
-These lemmas mean that once we have computed $\textbf{C}_S$ and $\textbf{D}_S$ at the beginning of the GSW in time $O(n^2d+n^3)$, we can update them in time $O(nd+n^2)$ and store them with a similar quantity of memory, resulting in a total time of running of $O(n^2(d+n))$ as computing $\delta_t$ and updating the coloring takes $O(n)$ time.
+These lemmas mean that once we have computed $\textbf{C}_S$ and $\textbf{D}_S$ at the beginning of the GSW in time $O(n^2d+n^3)$, we update them at most $n$ times in $O(nd+n^2)$ operations and store them with a similar quantity of memory, resulting in a total time of running of $O(n^2(d+n))$ as computing $\delta_t$ and updating the coloring takes $O(n)$ time.
 
-This happens to not be much faster in practice than a clever implementation using rank-one update to compute the inverse necessary to compute the Least Squares solution. That is because in the latter case, the size of the inverse matrix decreases at each step of the algorithm in that case, thus the one matrix multiplication necessary to compute the update direction becomes faster than the rank one updates described in this section quickly when $n$ is small, as $\textbf{C}_S$ and $\textbf{D}_S$ keep the same size throughout the whole algorithm run.
+This happens to not be much faster in practice than a clever implementation using rank-one update to compute the inverse necessary to compute the least squares solution. That is because in the latter case, the size of the inverse matrix decreases at each step of the algorithm in that case, thus the one matrix multiplication necessary to compute the update direction becomes faster than the rank one updates described in this section quickly when $n$ is small, as $\textbf{C}_S$ and $\textbf{D}_S$ keep the same size throughout the whole algorithm run.
 
 
-\section{Generalizing to any hyperparallelepiped}\label{different_basis_section}
-The idea is to allow the algorithm to sample coloring not only on the hypercube $[-1,1]^n$, but also on any set $\textbf{b}_1,\dots, \textbf{b}_n\in\mathbb{R}^n$ spanned by $n$ linearly independent vectors, denoted as the basis $\mathcal{B}$. The assignment returned then won't be a coloring per se but just a linear combination of the vectors with some coefficients corresponding to a vertex of the hyperparallelepiped formed by the basis vectors that should hopefully yield a somewhat short vector of imbalances. We will still denote it by the term coloring for clarity reasons.
+\section{Generalizing to any Hyperparallelepiped}\label{different_basis_section}
+The idea is to allow the algorithm to produce colorings not only on the hypercube $[-1,1]^n$, but also on any hyperparallelepiped spanned by a set $\textbf{b}_1,\dots, \textbf{b}_n\in\mathbb{R}^n$ of $n$ linearly independent vectors, denoted as the basis $\mathcal{B}$. The assignment returned then won't be a coloring per se but just a linear combination of the vectors with some coefficients corresponding to a vertex of the hyperparallelepiped formed by the basis vectors that should hopefully yield a somewhat short vector of imbalances. We will still denote it by the term coloring for clarity reasons.
 
 To do so, we have to adapt the algorithm at several points. Firstly, an element $k$ associated to the basis vector $\textbf{b}_k$ should be alive only if the current coloring is not on one of the 2 facets such that when expressed in the basis $\mathcal{B}$, the $k$th coordinate is -1 or 1. 
 
-Secondly, choosing the update direction is then different as we need to stay orthogonal from every fixed vector, but these vectors don't correspond to coordinates anymore as we're not using the trivial basis $\textbf{e}_1,\dots,\textbf{e}_n$ anymore.
+Secondly, choosing the update direction is then different as we need to stay orthogonal from every fixed vector, but these vectors do not correspond to coordinates anymore as we're not using the trivial basis $\textbf{e}_1,\dots,\textbf{e}_n$ anymore.
 
-Thirdly, the computation of the two potential $\delta$ is different as well for some similar reasons: you have to compute the maximum delta such that the coloring stays in the hyperparallelepiped defined by the basis
+Thirdly, the computation of the two potential $\delta$ is different as well for some similar reasons: you have to compute the maximum delta such that the coloring stays in the hyperparallelepiped defined by the basis.
 
 All these issues can be solved via some basis changes in the right spots and the modified algorithm is very similar, and should work exactly the same way when given the orthonormal canonical basis of $\mathbb{R}^n$, $\textbf{e}_1,\dots,\textbf{e}_n$. The main idea is that we will keep two separate coloring, $\textbf{z}$ and $\textbf{z}'$, where $\textbf{z}$ is expressed in the canonical basis and $\textbf{z}'$ is expressed as coordinates in $\mathcal{B}$. We will update $\textbf{z}'$ with $\textbf{u}_t'$, that is $\textbf{u}_t$ except it is expressed via its coordinates in $\mathcal{B}$. Computing $\delta_t$ is then fairly easy as we just have to replace $\textbf{z}$ by $\textbf{z}'$ in the normal computation. 
 
@@ -402,7 +420,7 @@ Let $\textbf{B}_{\mathcal{B}}$ be the matrix containing the basis vectors $\text
 Putting it all in pseudocode and highlighting the difference with the original algorithm (\ref{walk}) in \textcolor{red}{red}, we get the Algorithm \ref{basiswalk}.\\
 \begin{algorithm}[H]\label{basiswalk}
 {\fontsize{10}{12}
-\caption{The Gram-Schmidt Walk on a different basis}
+\caption{The Gram-Schmidt walk on a different basis}
     \SetKwInOut{Input}{Input}
     \SetKwInOut{Output}{Output}
     \Input{$\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$%with $\ell_2$ norm  at most 1
@@ -432,10 +450,10 @@ Putting it all in pseudocode and highlighting the difference with the original a
     %\caption{Gram-Schmidt walk}
     }%
     \end{algorithm}
-An example of output of the GSW with a different coloring basis can be found in Figure \ref{3types_basis_200_2}, that contains a plot of vectors of imbalances of the classical GSW, and the GSW with two different basis; one that is all positive vectors of norm 1 and one that is orthonormal. We see that the vectors of imbalances of the latter resemble closely those of the classical GSW, while those obtained using the former have a skewed distribution. 
+An example of output of the GSW with a different coloring basis can be found in figure \ref{3types_basis_200_2}, that contains a plot of vectors of imbalances of the classical GSW, and the GSW with two different basis; one that is all positive vectors of norm 1 and one that is orthonormal. We see that the vectors of imbalances of the latter resemble closely those of the classical GSW, while those obtained using the former have a skewed distribution. 
 \begin{figure}[h!]
 \include{3types_basis_200_2}
-\caption{Plot of vectors of imbalances of group assignments from the GSW, the GSW with a basis where every vector has only positive coordinates and is of norm 1 (\textbf{B1}) and the GSW with a random orthonormal basis (\textbf{B2}), using the generalization from section \ref{different_basis_section}. There are 200 input vectors from $\mathbb{R}^2$, and 200 of each type of output. }\label{3types_basis_200_2}
+\caption{Plot of vectors of imbalances of group assignments from the GSW, the GSW with a basis where every vector has only positive coordinates and is of norm 1 (\textbf{B1}) and the GSW with a random orthonormal basis (\textbf{B2}), using the generalization from section \ref{different_basis_section}. There are 200 input vectors from $\mathbb{R}^2$, and 200 outputs of each type. }\label{3types_basis_200_2}
 \end{figure}
 
 %\section{Generalizing to more than two groups}
@@ -455,7 +473,7 @@ An example of output of the GSW with a different coloring basis can be found in 
 In this section, we try to see how the GSW behaves, both generally and when given some specific inputs. We also try some modifications that aim to modify its behavior for some specific purposes.
 
 \subsection{How good is the GSW at minimizing output the norm of the vector of imbalances in practice ?}
-We want to see how well the GSW actually minimizes the norm of the resulting vector of imabalances in comparison with other variants and algorithms. We will compare it to the naive walk (Algorithm \ref{naivewalk}), the deterministic GSW (also referred to as DGSW, defined in section \ref{basic_variants}) and the assignment that has the actual lowest vector of imbalances norm, computed via bruteforcing, but only for small values of $n$ for this last one.
+We want to see how well the GSW actually minimizes the norm of the resulting vector of imabalances in comparison with other variants and algorithms. We will compare it to the naive walk (Algorithm \ref{naivewalk}), the deterministic GSW (also referred to as DGSW, defined in section \ref{basic_variants}) and the assignment that has the actual lowest vector of imbalances norm, computed via brute force, but only for small values of $n$ for this last one.
 
 \subsubsection{Experiment 1}\label{how_good_at_minimizing_disc}
 We compare the output norm of the vector of imbalances of the GSW, DGSW, the naive walk, \textbf{NW}, and for some small $n$ also the best assignment found via brute forcing on all possibilities, \textbf{LDA}. We do this for $n=5,10,20,40,80,160$, and with $d=2^i$ for $i\in[15]$, where we sample $n$ vectors from the $d$-dimensional ball of radius 1. We do one thousand runs for each $d$ and each $n$, each with a different set of $n$ vectors sampled from the ball of radius 1.
@@ -464,9 +482,9 @@ We compare the output norm of the vector of imbalances of the GSW, DGSW, the nai
 \begin{figure}
 \centering
 \include{comparative_norms_n=160_repeat=1000_max_dim=32768.0}
-\caption{Result of experiment 1 from section \ref{how_good_at_minimizing_disc}: comparison of different norm of vector of imbalances minimizing algorithms for $n=5,10,20,40,80,160$ and $160$ vectors of dimension between $2$ and $2^{15}$. Results were averaged over 1000 runs.}\label{output_disc}
+\caption{Results of experiment 1 from section \ref{how_good_at_minimizing_disc}: comparison of different norm of vector of imbalances minimizing algorithms for $n=5,10,20,40,80,160$ vectors of dimension between $2$ and $2^{15}$. Results were averaged over 1000 runs.}\label{output_disc}
 \end{figure}
-Our results are visible in Figure \ref{output_disc}. We can see that GSW actually gives the worst results in terms of minimization of the norm of the vector of imbalances, but that when the dimension of the vector grows all methods seem to give similar results asymptotically. Note that we cannot say that the naive walk is just a better minimizing algorithm for this problem as these results would probably be different if we modified the distribution of input vectors.
+Our results are visible in figure \ref{output_disc}. We can see that GSW actually gives the worst results in terms of minimization of the norm of the vector of imbalances, but that when the dimension of the vector grows all methods seem to give similar results asymptotically. Note that we cannot say that the naive walk is just a better minimizing algorithm for this problem as these results would probably be different if we modified the distribution of input vectors.
 
 \subsubsection{Experiment 2}
 While the GSW obviously has some other desirable properties, there should be input vector sets on which the GSW returns shorter vector of imbalances on average than the naive walk. If the vectors aren't shuffled before the naive walk, it is trivial to find a set on which the GSW produces shorter vectors of imbalances. If they are, it isn't as trivial but it still isn't too hard. For example let's run the GSW and the naive walk on the set containing 100 copies of both $v_1$ and $v_2$ where $$v_1=\begin{pmatrix}1\\0\end{pmatrix},\quad v_2=\begin{pmatrix}\frac{10}{\sqrt{2}}\\ \frac{10}{\sqrt{2}}\end{pmatrix}.$$
@@ -474,18 +492,18 @@ We will record the norm of the resulting vector of imbalances for 100 runs of ea
 \subsubsection{Results 2}
 The resulting average norm is exactly $0$ for the GSW and $3.47$ for the naive walk, showing that the naive walk can yield much higher norms when the input vectors are less well-behaved. Indeed, the naive walk doesn't use the knowledge of the full input vector set like the GSW does and thus fails to balance this set well.
 
-\subsection{Does translation affect the balance of the assignment ?}\label{trans_balance}
+\subsection{Does translation of the input vectors have an effect on the balance of the assignment ?}\label{trans_balance}
 By \textit{balance of the assignment}, we mean the absolute difference between the number of 1s and -1s. An assignment is perfectly balanced if its sum is 0, that is the groups produced by the assignment have equal size.
 
 If our initial group of vector is centered around \textbf{0}, we would expect that translating it away will force it to have a greater balance between -1s and 1s in order to balance the translation part added to each vector.
 
 \subsubsection{Experiment}
-We sample 200 input vectors from the ball in dimension 200. We then run the GSW and DGSW 100 times each on those vector translated by some random norm 1 vector multiplied by some factor. We use the factors 0,1,2,5 and 10 and compare the results.
+We sample 200 input vectors from the ball of radius 1 in dimension 200. We then run the GSW and DGSW 100 times each on those vector translated by some random norm 1 vector multiplied by some factor. We use the factors 0,1,2,5 and 10 and compare the results.
 
 \subsubsection{Results}
 \begin{table}[h!]
 \centering
-\caption{Results of our experiment on the balance of assignments depending on how much the vectors are transated. The numbers shown are the average absolute value of the sums of output vectors. A smaller number indicates that the assignment has a more balanced assignment, that is the number of 1s and -1s are closer.}
+\caption{Results of our experiment from section \ref{trans_balance} on the balance of assignments depending on how much the vectors are translated. The numbers shown are the average absolute value of the sums of output vectors. A smaller number indicates that the assignment is more balanced, that is the number of 1's and -1's are closer.}
 \begin{tabular}{l|llllll}
  Factor & 0 & 1  & 2 & 5 & 10  \\
 \hline
@@ -503,12 +521,12 @@ Inspired by section \ref{trans_balance}, we propose a slight modification of the
 Given input vectors $\textbf{v}_1,\dots,\textbf{v}_n\in\mathbb{R}^d$ and a parameter $\mu\in[0,1]$, we define $\textbf{w}_1,\dots,\textbf{w}_n\in\mathbb{R}^{d+1}$ as $$\textbf{w}_i=\begin{pmatrix}\sqrt{1-\mu}\textbf{v}_i \\ \sqrt{\mu}\end{pmatrix}.$$ This way the $\textbf{w}_i$'s have similar norm to the $\textbf{v}_i$'s, but it is possible that a different normalization depending on the norm of the $\textbf{v}_i$'s could be better. We then run the GSW on the $\textbf{w}_i$'s and use the output assignment on the $\textbf{v}_i$'s. Choosing $\mu=0$ is equivalent to doing the classical GSW algorithm, while using $\mu=1$ is equal to forcing maximum balance. We run experiments to determine how much balance in the assignment we gain and how much further from \textbf{0} our output is for different $\mu$'s.
 
 \subsubsection{Experiment}
-We use our construction from the previous paragraph to compute an assignment on the $\textbf{w}_i$'s using GSW or DGSW, then see how balanced this assignment is, and how the norm of its vector of imabalances on the original $\textbf{v}_i$'s varies. We also program the fixed size GSW described in \cite{harshaw2019balancing} and compare it with our balancing method. We use $\mu\in\{0,0.001,0.01,0.1,0.25,0.5,0.75,0.9,0.99,0.999,1\}$, and $n$ vectors sampled from the ball of radius 1 in dimension $n$ for $n=100$. The results presented are averaged over 1000 runs.
+We use our construction from the previous paragraph to compute an assignment on the $\textbf{w}_i$'s using GSW or DGSW, then record how balanced this assignment is, and how the norm of its vector of imabalances on the original $\textbf{v}_i$'s varies. We also program the fixed size GSW described in \cite{harshaw2019balancing} and compare it with our balancing method. We use $n$ vectors sampled from the ball of radius 1 in dimension $n$ for $n=100$ and $\mu\in\{0,0.001,0.01,0.1,0.25,0.5,0.75,0.9,0.99,0.999,1\}$. The results presented are averaged over 1000 runs.
 
 \subsubsection{Results}
 \begin{table}[h!]
 \centering
-\caption{Results of our experiment on the balance of assignments with our new balance-norm of the vector of imbalances tradeoff design. The balance measure shown (lines starting with AB for average balance) are the average absolute value of the sums of output vectors. The norm of the vector of imbalances numbers shown (lines starting with AN for average norm of imbalance) are the norms of the sum of $\textbf{v}_i\cdot \textbf{z}_i$, $\textbf{z}$ being the assignment produced by GSW or DGSW for the $\textbf{w}_i$'s. %For the last column, we used the fixed size GSW design from \cite{harshaw2019balancing} rather than what is described in section\ref{balance_parameter}. 
+\caption{Results of our experiment on the balance of assignments with our new balance-norm of the vector of imbalances tradeoff design. The balance measure shown (lines starting with AB for average balance) are the average absolute value of the sums of assignment vectors. The norm of the vector of imbalances numbers shown (lines starting with AN for average norm of imbalance) are the norms of the sum of $\textbf{v}_i\cdot \textbf{z}_i$, $\textbf{z}$ being the assignment produced by GSW or DGSW for the $\textbf{w}_i$'s. %For the last column, we used the fixed size GSW design from \cite{harshaw2019balancing} rather than what is described in section\ref{balance_parameter}. 
 The D at the end of the last two lines indicates that in this case, the deterministic GSW algorithms was used.\\
 A smaller balance measure indicates that the assignment has a more balanced assignment, that is the number of 1s and -1s are closer. A smaller norm of imbalances measure indicates that the vectors are better balanced among the groups, that is the sum of each coordinate is closer to be the same in each group. FSD references the fixed size design from \cite{harshaw2019balancing}, which was used for the rightmost column in order to compare it with what is described in section \ref{balance_parameter}.}
 \begin{tabular}{l|llllllllllll}
@@ -540,7 +558,7 @@ We can see that we can massively increase assignment balance without making the 
 %\subsection{Does norm affect the balance of the assignment ?}
 %We would expect norms not to affect the balance of the assignment, as multiplying every input vector by the same factor should mean the algorithm runs similarly.
 
-\subsection{Does norm affect when a vector is colored ?}\label{norm_affect_when}
+\subsection{Does the norm of a vector affect when it is colored ?}\label{norm_affect_when}
 The expected heuristic would have been that bigger vectors are colored earlier and the algorithm then colors the smaller ones to balance the longer ones in order to minimize the norm of the vector of imbalances, as that is what we'd instinctively do. It turns out that the algorithm actually does the reverse and colors the smaller vectors earlier than the bigger ones.
 
 We performed two experiments to observe this behavior. In both experiments, we have vectors $\textbf{v}_1,\dots,\textbf{v}_{200}$ of increasing norm and observe how close the coloring order is to $\mathcal{R}=\{200,199,$\dots$,1\}$. To do so, if $\mathcal{O}$ is the observed order, we look at the quantity 
@@ -558,10 +576,10 @@ We sampled 200 vectors $\textbf{v}_1,\dots,\textbf{v}_{200}$ in the ball of radi
 We sampled 200 vectors $\textbf{v}_1,\dots,\textbf{v}_{200}$ in the ball of radius 1 of dimension 200. For each $\textbf{v}_i$, we replaced it by $X_i\cdot \textbf{v}_i/\|\textbf{v}_i\|$ so that $\|\textbf{v}_i\|=X_i$ for each vector, where $X_i=1 + 199\cdot\mathds{1}_{i<n/2}$. We call this vector set the two group set (2G).
 
 \subsubsection{Results}\label{results_norm_affect_when}
-We also ran the same experiments with 200 vectors of constant norm 1 as a comparison, which we call the all equal norm set (AEN). The results are summarized in Figure \ref{norm_when_colored}.
+We also ran the same experiments with 200 vectors of constant norm 1 as a comparison, which we call the all equal norm set (AEN). The results are summarized in table \ref{norm_when_colored}.
 \begin{table}[h!]
 \centering
-\caption{Result of our experiments on the moment of coloring depending on the norm of the vectors. The numbers shown are the $\Delta_o$ as defined in equation \ref{orderdistance}.}
+\caption{Results of our experiments on the moment of coloring depending on the norm of the vectors. The numbers shown are the $\Delta_o$ as defined in equation \ref{orderdistance}.}
 \begin{tabular}{l|lll}
 & IGN & 2G & AEN  \\
 \hline
@@ -576,15 +594,17 @@ $, it's corresponding coordinate in $\textbf{u}_t$ is going to be divided by $\m
 
 This motivates us to try to find a variant of the algorithm that would color bigger vectors earlier and thus yield shorter vector of imbalances on an input such as $\{\textbf{v},\textbf{v},\textbf{v},3\textbf{v}\}$ for some $\textbf{v}\in\mathbb{R}^d$ and an arbitrary $d\in\mathbb{N}$. One way would be to choose the pivot through some smart condition or to choose another feasible $\textbf{u}_t$ than the default least square solution with minimal norm, as in that specific adversarial example there are an infinite number of valid $\textbf{u}_t$, some of which solve our problem in one step with a perfectly balanced groups.
 
-One such idea is to force the pivot to be the largest norm vector, and then, when $\textbf{v}_\perp=\textbf{0}$, to select $\textbf{u}_t$ through lasso regression with a very small alpha ($\alpha=10^{-32}$ for example) in order to ensure that the smallest possible number of coordinates are nonzero, and finally to select $\delta_t$ by taking it to be of the same sign as the coordinate of $x$ corresponding to the pivot (or randomly if that coordinate is 0). This variant solves the issue mentioned in the previous paragraph but trades a lot of randomness for some additional complexity in the process, so there probably exist some different additional constraint to add when computing $\textbf{u}_t$ in colinear cases that could work even better.
+One such idea is to force the pivot to be the largest norm vector, and then, when $\textbf{v}_\perp=\textbf{0}$, to select $\textbf{u}_t$ through lasso regression with a very small alpha ($\alpha=10^{-32}$ for example) in order to ensure that the smallest possible number of coordinates are nonzero, and finally to select $\delta_t$ by taking it to be of the same sign as the coordinate of $x$ corresponding to the pivot (or randomly if that coordinate is 0). This variant solves the issue mentioned in the previous paragraph but trades a lot of randomness for some additional complexity in the process, so there probably exists some different additional constraint to add when computing $\textbf{u}_t$ in colinear cases that could work even better.
 
 %Another variant that works but only in this trivial example and not in slightly more complicated examples with for examples 2 groups of vectors is to just force the largest alive vector to be the pivot at every step. This is just a product of the exact solution of the least squares we're choosing as there are infinitely many that wouldn't work. This doesn't work for slightly more convoluted adversarial cases and is just a product of our exact implementation.
 
-A second variant that might help is to do quadratic programming instead of simple least squares when $\textbf{v}_\perp=\textbf{0}$. This way, we can force the quadratic program to minimize both $\|\textbf{Bu}_t\|^2$ but also $\|\textbf{u}_t\|^2$. This could be achieved by adding a line of 1's to the matrix $\textbf{B}$ containing all input vectors as column, and adding as conditions that the chosen $\textbf{u}_t$ must have a 1 in the pivot coordinate and 0's in already colored coordinates, similarly to the conditions in the original GSW system of equation. Then if the $\textbf{u}_t$ chosen through this quadratic program doesn't yield $\textbf{Bu}_t=\textbf{0}$, we discard it and compute $\textbf{u}_t$ through the usual method as the modification would then interfere with the normal properties of the GSW instead of just improving it by adding constraints when there are an infinite number of optimal solutions. This technique coupled with choosing the longest alive vector as pivot actually solves adversarial cases similar to those mentioned three paragraphs ago, as well as more complicated ones such as $\{\textbf{v},\textbf{v},\textbf{v},3\textbf{v},\textbf{w},\textbf{w},2\textbf{w}\}$, and doesn't modify the behavior of the algorithm when $\textbf{v}^\perp(t)\not=\textbf{0}$. The only small issue is that the matrix $\textbf{B}^T\textbf{B}$ then needs to be regularized by adding some very small constant times the identity or it isn't strictly positive definite, which is necessary for our quadratic program solver.
+A second variant that might help is to do quadratic programming instead of simple least squares when $\textbf{v}_\perp(t)=\textbf{0}$. This way, we can force the quadratic program to minimize both $\|\textbf{Bu}_t\|^2$ but also $\|\textbf{u}_t\|^2$. This could be achieved by adding a line of 1's to the matrix $\textbf{B}$ containing all input vectors as column, and adding as conditions that the chosen $\textbf{u}_t$ must have a 1 in the pivot coordinate and 0's in already colored coordinates, similarly to the conditions in the original GSW system of equation. Then if the $\textbf{u}_t$ chosen through this quadratic program doesn't yield $\textbf{Bu}_t=\textbf{0}$, we discard it and compute $\textbf{u}_t$ through the usual method as the modification would then interfere with the normal properties of the GSW instead of just improving it by adding constraints when there are an infinite number of optimal solutions. This technique coupled with choosing the longest alive vector as pivot actually solves adversarial cases similar to those mentioned three paragraphs ago, as well as more complicated ones such as $\{\textbf{v},\textbf{v},\textbf{v},3\textbf{v},\textbf{w},\textbf{w},2\textbf{w}\}$, and doesn't modify the behavior of the algorithm when $\textbf{v}^\perp(t)\not=\textbf{0}$. The only small issue is that the matrix $\textbf{B}^T\textbf{B}$ then needs to be regularized by adding some very small constant times the identity or it isn't strictly positive definite, which is necessary for our quadratic program solver.
 
 A third potential method would be to again do quadratic programming, but this time minimize $|(|u|-1)|$ or $(|u|-1)^2$ in addition to $\|\textbf{Bu}\|$, with the same constraints as previously. Despite not being a quadratic or linear function, absolute value in the objective function can be included, it is just necessary to transform it into linear constraints and additional variables, which is a common linear programming trick. This technique would function without forcing a specific pivot and seems thus superior to the previous one, but I didn't have time to program it and test it to make sure that my intuition is indeed correct.
 
-This last variant seems interesting as it intuitively makes sense to color as much as possible in the early steps, as we have more degrees of freedom during these steps. I have not been able to find a situation where that seemed worse than the classical GSW so far. 
+This last variant seems interesting as it intuitively makes sense to color as much as possible in the early steps, as we have more degrees of freedom during these steps. I have not been able to find a situation where that seemed worse than the classical GSW so far.
+
+Another interesting experiment in the same vein would be to check if these results change with the dimension.
 
 %\subsection{What affects when a vector is colored other than the norm ?}
 
@@ -605,14 +625,14 @@ DGSW&5.989&2.277
 \label{pivot_longer}
 \end{table}
 
-Results are visible in Table \ref{pivot_longer}. We see that shorter vectors tend to stay pivot for much longer than their longer counterparts. This could be explained by the fact that, as seen in Section \ref{norm_affect_when}, longer vectors are colored later. This means that in the later part of a GSW run, most alive elements are in the second group and will thus have similar scale and color each other, whereas in the early steps of a run short vectors are colored by any pivot, and thus short vectors would be mostly chosen as pivot at the beginnning of a run of the GSW. % so longer vectors rarely get colored by a small vector pivot, but shorter vectors do get colored while the longer vectors are pivot.
+Results are visible in table \ref{pivot_longer}. We see that shorter vectors tend to stay pivot for much longer than their longer counterparts. This could be explained by the fact that, as seen in section \ref{norm_affect_when}, longer vectors are colored later. This means that in the later part of a GSW run, most alive elements are in the second group and will thus have similar scale and color each other, whereas in the early steps of a run short vectors are colored by any pivot, and thus short vectors would be mostly chosen as pivot at the beginnning of a run of the GSW. % so longer vectors rarely get colored by a small vector pivot, but shorter vectors do get colored while the longer vectors are pivot.
 
 It would be interesting to confirm or deny that hypothesis with another experiment looking at a more detailed distribution of the colorings and pivots, but we didn't have the time to perform something like that.
 
 \subsection{Can we force bigger vectors to be colored earlier ?}\label{bigger_earlier}
 Another technique that we could use would be to modify the choice of the direction. Currently, the bigger a vector is the later in the process it will be colored. 
 
-One could multiply the computed direction in each of its coordinate by the norm of the vector corresponding to that coordinate, or the squared norm. That would be a way of trying to compensate for the update coordinates of bigger vectors being smaller. This would remove the orthogonality of updates, but it doesn't mean that the assignment doesn't balance the vectors still.
+One could multiply the computed direction in each of its coordinate by the norm of the vector corresponding to that coordinate, or the squared norm. That would be a way of trying to compensate for the update coordinates of bigger vectors being smaller. This would remove the orthogonality of updates, but it doesn't mean that the assignment doesn't balance the vectors, even though we would expect the vector of imbalances obtained via this method to be somewhat longer still.
 
 We also study how that affects the order of the coloring in experiments similar to those done in subsection \ref{norm_affect_when}.
 \subsubsection{Experiment 1}\label{bigger_earlier_exp1}
@@ -622,30 +642,30 @@ We sample vectors similarly to the experiments performed in section \ref{norm_af
 \subsubsection{Results}
 \begin{figure}[h!]
 \include{3types_basis_100_0}
-\caption{Result of Experiment 1 from Section \ref{bigger_earlier_exp1}: plot of vectors of imbalances of group assignments from the GSW, the GSW with update direction multiplied coordinatewise by the norm of the corresponding vector, and the GSW with update direction multiplied coordinatewise by the square of the norm of the corresponding vector. There are 100 of each kind of points and input vectors are in dimension 2.}\label{3_types_d_and_i}
+\caption{Results of experiment 1 from section \ref{bigger_earlier_exp1}: plot of vectors of imbalances of group assignments from the GSW, the GSW with update direction multiplied coordinatewise by the norm of the corresponding vector, and the GSW with update direction multiplied coordinatewise by the square of the norm of the corresponding vector. There are 100 of each kind of points and input vectors are in dimension 2.}\label{3_types_d_and_i}
 \end{figure}
 \begin{table}[h!]
 \centering
-\caption{Result of Experiment 2 from Section \ref{bigger_earlier_exp2}: trying to fix the later coloring of bigger norm vectors. The numbers shown are the $\Delta_o$ as defined in equation \ref{orderdistance}.}
+\caption{Results of experiment 2 from section \ref{bigger_earlier_exp2}: trying to fix the later coloring of bigger norm vectors. The numbers shown are the $\Delta_o$ as defined in equation \ref{orderdistance}.}
 \begin{tabular}{l|llllll}
  &IGN w/ $D$&IGN w/ $D^2$& 2G w/ $D$&2G w/ $D^2$& AEN w/ $D$&AEN w/ $D^2$   \\
 \hline
 GSW&13246.72&6078.28&13246.74&6697.1&13444.94&13208.1\\
-DGSW&6808.96&13100.02&13597.86&6830.82&13303.18&13344.14
+DGSW&13100.02&6808.96&13597.86&6830.82&13303.18&13344.14
 \end{tabular}
 \label{norm_earlier}
 \end{table}
 
-Results from Experiment 1 can be seen in Figure \ref{3_types_d_and_i}. The modification of the computation of the update direction didn't seem to completely ruin how far the sum of outputs were from \textbf{0} if we compare it with Figure \ref{4types_4} which contains random assignments. Still, the vectors of imbalances  from modified GSW runs are more spread out than those from classical runs, which is because we forced our modifications onto the algorithm without letting it adapt. We would need to find a smarter way that modifies the computation without just modifying the results at each step carelessly.
+Results from experiment 1 can be seen in figure \ref{3_types_d_and_i}. The modification of the computation of the update direction didn't seem to completely ruin how far the sum of outputs were from \textbf{0} if we compare it with figure \ref{4types_4} which contains random assignments. Still, the vectors of imbalances  from modified GSW runs are more spread out than those from classical runs, which is because we forced our modifications onto the algorithm without letting it adapt. We would need to find a smarter way that modifies the computation without just modifying the results at each step carelessly.
 
-We can see from the results of Experiment 2 in Table \ref{norm_earlier}. Our modifications indeed do remove the late coloring. Multiplying once makes it so the vectors are colored approximately randomly and multiplying twice makes it so the bigger vectors are colored earlier, as intended. Still, the norm of the vector of imbalances can be seen to be greater in the previous experiment thus this method isn't good.
+We can see from the results of experiment 2 in table \ref{norm_earlier}. Our modifications indeed do remove the late coloring. Multiplying once makes it so the vectors are colored approximately randomly and multiplying twice makes it so the bigger vectors are colored earlier, as intended. Still, the norm of the vector of imbalances can be seen to be greater in the previous experiment thus this method isn't good.
 
 \subsection{Can we find another way of computing the update direction ?}
- As we saw that larger vectors get colored later in the process on average when using the classical algorithm, one could ask themselves how to revert this effect. Let $\textbf{B}$ be the matrix containing our input vectors as columns. Using a singular value decomposition, we have that $\textbf{B}=\textbf{U}\bm{\Sigma}\textbf{V}^T$ where $\textbf{U}\in\mathbb{R}^{m\times m}$ and $\textbf{V}\in\mathbb{R}^{n\times n}$ are orthonormal and $\bm{\Sigma}\in\mathbb{R}^{m\times n}$ is all zeros except for the diagonal elements which are positive singular values. Using this decomposition, we can see that $\textbf{B}^\dagger=\textbf{V}\bm{\Sigma}^\dagger\textbf{U}^T$ where $\bm{\Sigma}^\dagger$ is $\bm{\Sigma}^T$ except nonzero entries $\sigma_i$ are replaced by their inverse $1/\sigma_i$. But if one replaced $\bm{\Sigma}^\dagger$ by $\bm{\Sigma}$, then the matrix multiplying the pivot vector would be $\textbf{B}^T$ instead of $\textbf{B}^\dagger$. This suggestion from Pr. Marcus turned out not to work if we want to balance the vectors, but it actually does something close to the opposite which is very interesting. 
+ As we saw that larger vectors get colored later in the process on average when using the classical algorithm, one could ask themselves how to revert this effect. Let $\textbf{B}$ be the matrix containing our input vectors as columns. Using a singular value decomposition, we have that $\textbf{B}=\textbf{U}\bm{\Sigma}\textbf{V}^T$ where $\textbf{U}\in\mathbb{R}^{d\times d}$ and $\textbf{V}\in\mathbb{R}^{n\times n}$ are orthonormal and $\bm{\Sigma}\in\mathbb{R}^{d\times n}$ is all zeros except for the diagonal elements which are positive singular values. Using this decomposition, we can see that $\textbf{B}^\dagger=\textbf{V}\bm{\Sigma}^\dagger\textbf{U}^T$ where $\bm{\Sigma}^\dagger$ is $\bm{\Sigma}^T$ except nonzero entries $\sigma_i$ are replaced by their inverse $1/\sigma_i$. But if one replaced $\bm{\Sigma}^\dagger$ by $\bm{\Sigma}$, then the matrix multiplying the pivot vector would be $\textbf{B}^T$ instead of $\textbf{B}^\dagger$. This suggestion from Pr. Marcus turned out not to work if we want to balance the vectors, but it actually does something close to the opposite which is very interesting. 
 
 \subsubsection{Experiment 1}\label{exp1_A_T}
 
-We sampled 200 vectors in dimension 200 in the ball of radius 1. We then ran the modified GSW algorithm where the next direction is computed via $\textbf{u}_t(\mathcal{A}_t\setminus\{p(t)\})=\textbf{B}_t^T\textbf{v}_{p(t)}$ and $\textbf{u}_t(p(t))=1, \textbf{u}_t(i)=0$ $\forall i\not\in\mathcal{A}_t$, where $\textbf{B}_t$ is the matrix containing the vectors that are still alive and not the pivot as columns. Everything else is kept similar. We also plot the maximizing naive walk (\textbf{MNW}), that is for this experiment we switch the "$<$" to a "$>$" in the inequality on line 4 of the pseudocode of the Naive Walk available in section \ref{basic_variants}, as a comparison between its outputs and the results is interesting.
+We sampled 200 vectors in dimension 200 in the ball of radius 1. We then ran the modified GSW algorithm where the next direction is computed via $\textbf{u}_t(\mathcal{A}_t\setminus\{p(t)\})=\textbf{B}_t^T\textbf{v}_{p(t)}$ and $\textbf{u}_t(p(t))=1, \textbf{u}_t(i)=0$ $\forall i\not\in\mathcal{A}_t$, where $\textbf{B}_t$ is the matrix containing the vectors that are still alive and not the pivot as columns. Everything else is kept similar. We also plot the maximizing naive walk (\textbf{MNW}), that is for this experiment we switch the "$<$" to a "$>$" in the inequality on line 4 of the pseudocode of the naive walk available in section \ref{basic_variants}, as a comparison between its outputs and the results is interesting.
 
 \subsubsection{Experiment 2}\label{exp2_A_T}
 
@@ -656,29 +676,31 @@ We run a similar experiment as in \ref{how_good_at_minimizing_disc} except we lo
 \begin{figure}[h!]
 \centering
 \include{A_T_instead_of_lstsq_200}
-\caption{Results of Experiment 1 (Section \ref{exp1_A_T}). Vectors of imbalances using the modified GSW and DGSW where the update direction is computed by multiplying the pivot vector by $\textbf{B}^T$, as well as from the maximizing naive walk.}
+\caption{Results of experiment 1 from section \ref{exp1_A_T}. Vectors of imbalances using the modified GSW and DGSW where the update direction is computed by multiplying the pivot vector by $\textbf{B}^T$, as well as from the maximizing naive walk.}
 \label{A_T_instead_of_lstsq}
 \end{figure}
-The plot of the outputs from Experiment 1 are shown in figure \ref{A_T_instead_of_lstsq}. We can see that this modification seems like it now minimizes output balance by pushing the vector of imbalances away from \textbf{0}, which was surprising to me at least. This seems like it could be useful to sample from unbalanced group assignments, or to find a subset to remove to maximize along one dimension for example. This might be equivalent to an already known algorithm, but if not I think there might be interesting applications to this. For this exact distribution of vectors we can see that the maximizing naive walk is always a step further from \textbf{0}. It would be interesting to understand why that is, and whether that could be used to sample on the outer part of a zonotope for example. We can notice as well that the DGSW vectors of imbalances seem to be more often on the circle than the GSW vectors of imbalances which sometimes ended up in the middle.
+The plot of the outputs from experiment 1 are shown in figure \ref{A_T_instead_of_lstsq}. We can see that this modification seems like it now minimizes output balance by pushing the vector of imbalances away from \textbf{0}, which was surprising to us at least. This seems like it could be useful to sample from unbalanced group assignments, or to find a subset to remove to maximize along one dimension for example. This might be equivalent to an already known algorithm, but if not I think there might be interesting applications to this, as pseudoboolean maximization of positive definite quadratic forms is an NP problem as can be seen in \cite{gritzmann19890}. 
+
+For this exact distribution of input vectors we can see that the maximizing naive walk is always a step further from \textbf{0}, as if there was a limit that this GSW variant could not go over. It would be interesting to understand why that is, and whether that could be used to sample on the outer part of a zonotope for example. We can notice as well that the DGSW vectors of imbalances seem to be more often on the circle than the GSW vectors of imbalances which sometimes ended up in the middle.
 
 \begin{figure}[h!]
 \centering
 \include{comparative_norms_n=160_repeat=1000_max_dim=32768.0_maximizing}
-\caption{Results of Experiment 2 (section \ref{exp2_A_T}): comparing the modified GSW and DGSW with norm of the vector of imbalances maximizing algorithms.}
+\caption{Results of experiment 2 (section \ref{exp2_A_T}): comparing the modified GSW and DGSW with norm of the vector of imbalances maximizing algorithms.}
 \label{A_T_instead_of_lstsq_2}
 \end{figure}
-Results of experiment \ref{exp2_A_T} are available in Figure \ref{A_T_instead_of_lstsq_2}. We can see that for small $n$, using $\textbf{B}^T$ doesn't actually maximize the norm for small dimensions even though it seems to asymptotically do so when the dimension grows. For bigger $n$'s though, this variant seems to be decent at maximizing the norm of the vector of imbalance. It is also interesting to notice that there seems to be a change of regime around the point $n=d$, where after that point the average norm of the vector of imbalances goes up with the dimension whereas it seems to go down before.
+Results of experiment \ref{exp2_A_T} are available in figure \ref{A_T_instead_of_lstsq_2}. We can see that for small $n$, using $\textbf{B}^T$ doesn't actually maximize the norm for small dimensions even though it seems to asymptotically do so when the dimension grows. For bigger $n$'s though, this variant seems to be decent at maximizing the norm of the vector of imbalances, even though it is worse at it than the naive walk for this particular distribution of input vectors. It is also interesting to notice that there seems to be a change of regime around the point $n=d$, where after that point the average norm of the vector of imbalances goes up with the dimension whereas it seems to go down before.
 
-\subsection{Are vectors with smaller dimensionality colored at the same moment as vectors with more dimensions ?}\label{smaller_dimensionality}
+\subsection{Are sparse vectors colored at the same moment as non-sparse vectors ?}\label{smaller_dimensionality}
 We want to know if vectors with a lot of 0's can be found among vectors that are less sparse, as that could be very interesting to solve various problems such as the planted clique. As sparse vectors should be easier to color due to their smaller number of degrees of freedoms, we will investigate how early they're colored on average.
 
 \subsubsection{Experiment}
-We sample 100 vectors of dimension 100 from the ball of radius 1 but with 100 additional coordinates locked to zero. We also sample 100 vectors of dimension 200 from the ball of radius 1. We're interested in comparing whether vectors in one group get colored earlier than vectors from the other group on average. To do so we do 100 runs with each of three variants. In the first variant (V1), the vectors aren't changed. In the second one (V2), every vector is normalized. In the third one (V3), every vector is normalized but the non-sparse vectors are normalized to a norm of 2 so that the scale of the elements are similar to the sparse vectors normalized to a norm of 1. The last three variants are respective copies of the first three except the coordinates of the sparse vectors are shuffled so that the 0's aren't uniformly placed in the sparse group.
+We sample 100 vectors of dimension 100 from the ball of radius 1 but with 100 additional coordinates locked to zero. We also sample 100 vectors of dimension 200 from the ball of radius 1. We're interested in comparing whether vectors in one group get colored earlier than vectors from the other group on average. To do so we do 100 runs with each of three variants. In the first variant (V1), the vectors aren't changed. In the second one (V2), every vector is normalized. In the third one (V3), every vector is normalized but the non-sparse vectors are normalized to a norm of 2 so that the scale of the elements are similar to the sparse vectors normalized to a norm of 1. The last three variants are respective copies of the first three except the coordinates of each vectors are shuffled by a different random permutation.
 
 \subsubsection{Results}
 \begin{table}[h!]
 \centering
-\caption{Result of our experiments on whether sparse vectors are colored earlier from section \ref{smaller_dimensionality}. The numbers shown are the average coloring step of sparse vectors over 100 runs of the GSW.}
+\caption{Results of our experiments on whether sparse vectors are colored earlier from section \ref{smaller_dimensionality}. The numbers shown are the average coloring step of sparse vectors over 100 runs of the GSW.}
 \begin{tabular}{l|llllll}
  &V1&V2&V3&V4&V5&V6\\
 \hline
@@ -686,7 +708,7 @@ GSW&75.781&75.281&60.726&98.163&100.268&68.584\\
 DGSW&75.393&76.594&61.692&97.231&98.883&68.088
 \end{tabular}
 \label{sparse_early_res}\end{table}
-Results are available in table \ref{sparse_early_res}. We can see that sparse vectors are colored much earlier in the first 3 variants, and even earlier in the third variant, which might be explained also by their smaller norm relative to the non-sparse vectors, similarly to what was observed in section \ref{norm_affect_when}. The last three variant show use that the earliness effect seems to be mostly linked to the fact that the coordinates of the sparse vectors were not shuffled in the first three variants, as the sparse vectors are colored very close to the average of 100 in the fourth and fifth variant. The sixth variant has results that are higher than the third but still lower than 100, which is probably because of the difference in norm between the two groups.
+Results are available in table \ref{sparse_early_res}. We can see that sparse vectors are colored much earlier in the first three variants, and even earlier in the third variant, which might be explained also by their smaller norm relative to the non-sparse vectors, similarly to what was observed in section \ref{norm_affect_when}. The last three variant show use that the earliness effect seems to be mostly linked to the fact that the coordinates of the sparse vectors were not shuffled in the first three variants, as the sparse vectors are colored very close to the average of 100 in the fourth and fifth variant. The sixth variant has results that are higher than the third but still lower than 100, which is probably because of the difference in norm between the two groups.
 
 %Additional ideas
 It could also be interesting to investigate how balanced each vector group is and how noise affects these results, as this could help us discover a hidden group in a larger set. Another interesting thing would be to see how varying the relative size of the two groups would modify the phenomenon. 
@@ -726,7 +748,7 @@ DGSW  &0.521&0.538&0.525&0.424&0.445&0.431&0.461&0.387&0.441\\
 \label{pivot_colored_results}
 \end{table}
 
-Results are available in Table \ref{pivot_colored_results}. Notice that when using the maximum norm mode with DGSW we lose all randomness, which is probably undesirable but these were still included for completeness.
+Results are available in table \ref{pivot_colored_results}. Notice that when using the maximum norm mode with DGSW we lose all randomness, which is probably undesirable but these were still included for completeness.
 
 The DGSW proportions all seem a little higher in the dimension 2 and 10 cases, while in dimension 100 there seems to be no significant differences. So coloring the closest point on the update direction seems to push toward coloring the pivot most of the time in smaller dimensions, but when the dimension grows this effect appears to vanish.
 
@@ -736,44 +758,46 @@ We can also see that the pivot rule does not seem to change the pivot coloring r
 
 We can see on the 2G and IGN vector sets that the proportion of colored pivots is lower when using non-uniformly random pivot rules which favor longer vectors, which is consistent with the observation that longer vectors get colored later from \ref{norm_affect_when}. This is absent on the AEN vector set as the norms are all equal.
 
-Finally, the main observation seems to be that the pivot is colored more often when the dimension is small, which I currently don't have a logical explanation for.
+Finally, the main observation seems to be that the pivot is colored more often when the dimension is small, and I currently do not have any hypothesis on why that is the case.
 
 \subsection{What if we choose the pivot as a function of the fractional coloring ?}\label{pivot_coloring_rules}
-One could think of seeing the GSW as a rounding algorithm of some sort, and then, as the pivot is often colored as seen in Section \ref{pivot_colored}, we could want that the vectors closest to being colored are pivot as they're closer to being rounded. That is what we try in this section.% The pivot choice rule is also an interesting place to seek to optimize as it doesn't play a role inthe analysis from \cite{blues} and only plas a very minor role in section 6.2 of \cite{harshaw2019balancing}. Thus it leaves a lot of freedom that we can try to exploit to improve the GSW.
+One could think of seeing the GSW as a rounding algorithm of some sort, and then, as the pivot is often colored as seen in section \ref{pivot_colored}, we could want that the vectors closest to being colored are pivot as they're closer to being rounded. That is what we try in this section.% The pivot choice rule is also an interesting place to seek to optimize as it doesn't play a role inthe analysis from \cite{blues} and only plas a very minor role in section 6.2 of \cite{harshaw2019balancing}. Thus it leaves a lot of freedom that we can try to exploit to improve the GSW.
 
 We introduce two new pivot choice rules: the \textbf{maximum absolute coloring} (MAC) rule that chooses as pivot the alive vector that is closest to -1 or 1 and separates ties uniformly randomly, and the \textbf{coloring proportional} (CP) rule that chooses the pivot according to a distribution such that the probability that an alive vector is chosen as the pivot is proportional to the absolute value of its current fractional coloring value, and choses uniformly randomly if the fractional coloring value of every alive vector is 0.
 
 \subsubsection{Experiment 1}\label{exp_plot_max_col}
-We sample 100 vectors of dimension 2 and run both the classical GSW with random pivot and the classical GSW with \textbf{maximum absolute coloring} (MAC), as well as the DGSW with the MAC pivot rule which makes it a deterministic algorithm given the first pivot (assuming we don't hit a situation with equality in absolute value after the very first step). We do 100 runs per variant (with a different starting pivot for each run) and plot the results to see whether there is some pattern and how it looks like, similarly to figure \ref{4types_3}.
+We sample 100 vectors of dimension 2 and run both the classical GSW with random pivot and the classical GSW with \textbf{maximum absolute coloring} (MAC), as well as the DGSW with the MAC pivot rule which makes it a deterministic algorithm given the first pivot (assuming we don't come across a situation with equality in absolute value after the very first step). We do 100 runs per variant (with a different starting pivot for each run) and plot the results to see whether there is some pattern and how it looks like, similarly to figure \ref{4types_3}.
 
 \subsubsection{Results 1}
 \begin{figure}[h!]
 \centering
 \include{max_col_comparison}
-\caption{Results of Experiment 1 (Section \ref{exp_plot_max_col}). Plot of vectors of imbalances for the GSW and DGSW with random pivot rule and MAC pivot rule. 100 points for each variant on the graph.}
+\caption{Results of experiment 1 from section \ref{exp_plot_max_col}. Plot of vectors of imbalances for the GSW and DGSW with random pivot rule and MAC pivot rule. 100 points for each variant on the graph.}
 \label{results_plot_max_col}
 \end{figure}
-Results are visible in Figure \ref{results_plot_max_col}. We can see that as previously, the vector of imbalances from DGSW run are slightly closer to $\textbf{0}$ than those from GSW runs. Additionally, we can see that the MAC pivot rule seems to give us shorter vector of imbalances as well, with MAC DGSW runs being visibly much closer to \textbf{0}. While this effect could be expected as we color the vectors that allow us to pick smaller deltas and thus move less away from \textbf{0}, it is actually very visible here and we will investigate it further in the next experiment.
+Results are visible in figure \ref{results_plot_max_col}. We can see that as previously, the vector of imbalances from DGSW run are slightly closer to $\textbf{0}$ than those from GSW runs. Additionally, we can see that the MAC pivot rule seems to give us shorter vector of imbalances as well, with MAC DGSW runs being visibly much closer to \textbf{0}. While this effect could be expected as we color the vectors that allow us to pick smaller deltas and thus move less away from \textbf{0}, it is actually very visible here and we will investigate it further in the next experiment.
+
+We also see that the vectors of imbalances from the MAC GSW and especially the MAC DGSW seem visibly skewed along the $x$-axis. While this is not as present if we reproduce this plot with a different input vector sets, we can sometimes see that MAC (D)GSW vectors of imbalances are somewhat more centered along some direction. It would be interesting to see how this direction is related to the input vectors, maybe it is one of the eigenvectors of $\sum_{i\in[n]}\textbf{v}_i\textbf{v}_i^T$ ?
 
 \subsubsection{Experiment 2}\label{exp_norms_max_col}
-We run a similar experiment as in Section \ref{how_good_at_minimizing_disc}, except the algorithms we use are the classical GSW, the GSW with MAC and the DGSW with MAC.
+We run a similar experiment as in section \ref{how_good_at_minimizing_disc}, except the algorithms we use are the classical GSW, the GSW with MAC and the DGSW with MAC.
 \subsubsection{Results 2}
 \begin{figure}[h!]
 \centering
 \include{comparative_norms_n=160_repeat=1000_max_dim=32768.0_max_col}
-\caption{Results of Experiment 2 (Section \ref{exp_norms_max_col}). Average norm of 1000 vector of imbalances for $n=5,10,20,40,80,160$ input vectors and in dimensions $d=2$ to $d=2^{15}$, using GSW with both the random pivot rule and the maximal coloring rule, and DGSW with the maximal coloring rule.}
+\caption{Results of experiment 2 from section \ref{exp_norms_max_col}. Average norm of 1000 vector of imbalances for $n=5,10,20,40,80,160$ input vectors and in dimensions $d=2$ to $d=2^{15}$, using GSW with both the random pivot rule and the maximal coloring rule, and DGSW with the maximal coloring rule.}
 \label{results_plot_max_col_norms}
 \end{figure}
-We can see the results in Figure \ref{results_plot_max_col_norms}. The GSW and the GSW with MAC are very close, but the DGSW with MAC produces significantly smaller vector of imbalances. While for big dimension, it doesn't make much of a difference, for smaller dimensions and bigger numbers of vectors, this seems to be divide by more than 2 in comparison to the classical GSW which is a sizable improvement.
+We can see the results in Figure \ref{results_plot_max_col_norms}. The GSW and the GSW with MAC are very close, but the DGSW with MAC produces significantly smaller vector of imbalances. While for large dimensions, it doesn't make an enormous difference, for smaller dimensions and larger numbers of vectors, this seems to be divide by more than 2 in comparison to the classical GSW which is a sizable improvement.
 
 \subsubsection{Experiment 3}\label{pivot_colored_coloring_rules}
-We reproduce the experiment in Section \ref{pivot_colored} but with the MAC and CP rules.
+We reproduce the experiment in section \ref{pivot_colored} but with the MAC and CP rules.
 
 We would expect these methods to have higher pivot-coloring rates as the previous ones, as they're literally choosing elements that are more likely than average to be colored in the next step as their absolute value is closer to 1.
 \subsubsection{Results 3}
 \begin{table}[h!]
 \centering
-\caption{Result of our experiments from section \ref{pivot_colored_coloring_rules} on how often is the pivot colored as a function of the pivot choice rule and the input vector set, now with coloring-dependent pivot choice rules. Results are averaged over 100 runs of the GSW each and are proportions between 0 and 1.}
+\caption{Results of our experiments from section \ref{pivot_colored_coloring_rules} on how often is the pivot colored as a function of the pivot choice rule and the input vector set, now with coloring-dependent pivot choice rules. Results are averaged over 100 runs of the GSW each and are proportions between 0 and 1.}
 \begin{tabular}{l|ll|ll|ll}
 Dimension &\multicolumn{6}{c}{\textbf{2}}\\
 Set  & \multicolumn{2}{c}{AEN} & \multicolumn{2}{c}{2G} & \multicolumn{2}{c}{IGN} \\
@@ -798,7 +822,7 @@ DGSW  &0.884&0.623&0.722&0.542&0.825&0.544\\
 \label{pivot_colored_coloring_rules_results}
 \end{table}
 
-Results are visible in Table \ref{pivot_colored_coloring_rules_results}. We can see that as predicted, the pivot coloring rates are higher in this experiment than in section \ref{pivot_colored}, but they actually aren't for the 2 groups (2G) vector set using the random pivot. One potential explanation is that the longer vectors are often close to being colored but still harder to color than the small ones despite that, where the random pivot rule actually chooses a smaller vector 50\% of the time. 
+Results are visible in table \ref{pivot_colored_coloring_rules_results}. We can see that as predicted, the pivot coloring rates are higher in this experiment than in section \ref{pivot_colored}, but they actually aren't for the 2 groups (2G) vector set using the random pivot. One potential explanation is that the longer vectors are often close to being colored but still harder to color than the small ones despite that, where the random pivot rule actually chooses a smaller vector 50\% of the time. 
 
 For dimension 100 we see that the maximum absolute coloring rule actually yields a much higher pivot coloring rate than its proportional variant, which could be an indication that the fractional coloring become less sure, that is closer to 0 on average, the higher the dimension goes.
 
@@ -807,19 +831,19 @@ We can also notice that the DGSW leads to a higher coloring rate, which makes se
 \subsection{Can we choose the pivot from the potential update directions or $\textbf{v}^\perp(t)$ ?}\label{pivot_from_v_perp}
 Section \ref{fast_computations} lets us compute the update direction and $\textbf{v}^\perp(t)$ for every potential pivot, so we could exploit that and choose among potential update directions, potentially only when we need a new pivot but not necessarily. 
 
-One way to do this is to compute $\textbf{u}_t$ for every potetnial pivot, compute the resulting two potential moves, choose one for each pivot through the usual martingale setting then among the chosen use the shortest one. We call that pivot rule the random minimum move rule (\textbf{RMM}). Its DGSW equivalent just chooses the shortest move with access to every $\delta$ instead of by having chosen one for each potential pivot preemptively. 
+One way to do this is to compute $\textbf{u}_t$ for every potential pivot, compute the resulting two potential moves, choose a $\delta$ for each pivot through the usual martingale setting, then among the chosen $\delta_t\textbf{u}_t$ moves, use the shortest one. We call that pivot rule the random minimum move rule (\textbf{RMM}). Its DGSW equivalent just chooses the shortest move with access to every $\delta$ instead of by having chosen one $\delta$ for each potential pivot preemptively. 
 
-Another way to do so is to choose a pivot with a probability proportional to the inverse of the norm of the expected move, that is, $(|\delta_t^+\delta_t^-|\|\textbf{u}_t\|)^{-1}$.We call this pivot rule the inverse move proportional (\textbf{IMP}).
+Another way to do so is to choose a pivot with a probability proportional to the inverse of the norm of the expected move, that is, $(2\frac{|\delta_t^+\delta_t^-|}{|\delta_t^+|+|\delta_t^-|}\|\textbf{u}_t\|)^{-1}$. We call this pivot rule the inverse move proportional (\textbf{IMP}).
 
-Both of these rules could be applied to choose a new pivot at each step, regardless of whether or not the current pivot has been colored, or only when a new pivot is needed. Remember that it is necessary for the current subgaussianity proofs that the pivot stays the same for as long as it isn't colored, but in this case it could be interesting to change at each time step. When we always choose a new pivot we will add \textbf{ANP} for "always new pivot".
+Both of these rules could be applied to choose a new pivot at each step, regardless of whether or not the current pivot has been colored, or only when a new pivot is needed. Note that it is necessary for the current subgaussianity proofs that the pivot stays the same for as long as it isn't colored, but in this case it could be interesting to change at each time step. When we always choose a new pivot we will add \textbf{ANP} for "always new pivot".
 
-As returning all update directions in a computationally efficient way requires to have $n\leq d$, we cannot test these rules on similar experiments as those previously done. Thus we test them in the section \ref{new_rule_tests}.
+As returning all update directions in a computationally efficient way requires to have $n\leq d$ as that is necessary for the implementation described in section \ref{fast_computations}, we cannot test these rules on similar experiments as those previously done. Thus we test them in section \ref{new_rule_tests}.
 %\subsection{Can we force the algorithm to color the pivot vector ?}
 %\subsection{What makes it so a vector is colored early outside of its norm and dimensionality ?}
 %\subsection{Can we make the algorithm faster with some clever factorization ?}
 
-\section{Finding structured subgroups}\label{structured_subgroups}
-We will try several experiments aiming to identify structured subgroups hidden in sets of random vectors. The idea is that the GSW should color members of the subgroup early as they should be easier to color as they should balance each other out, and we will look at when the GSW colors which vectors over a large number of runs of the GSW and with various sets of vector and configurations. The ideal case would be if the GSW could help us solve a problem such as the Planted Clique.
+\section{Finding Structured Subgroups}\label{structured_subgroups}
+We will try several experiments aiming to identify structured subgroups hidden in sets of random vectors. The idea is that the GSW should color members of the subgroup early as they should be easier to color as they should balance each other out, and we will look at when the GSW colors which vectors over a large number of runs of the GSW and with various sets of vector and configurations. The ideal case would be if the GSW could help us solve a problem such as the planted clique.
 
 This section is inspired by results such as those in section \ref{smaller_dimensionality}.
 
@@ -827,17 +851,17 @@ One problem that we would like to solve is, given vectors $\textbf{v}_1,\dots,\t
 
 While one could just compute the norms difference between all pairs of vectors and probably find the cluster, one other way to do so would be to look for the vector that's colored the earliest on average after some number $r$ of GSW runs, and return that vector and the $k-1$ vector that are the closest to it. There are lots of moving parameters here, including $n,k,d$ and the specific GSW variant used. We will investigate when that approach works and when it doesn't. We call this technique the \textbf{early coloring}.
 
-\subsection{How many runs are needed to get a decent idea of when a vector is colored ?}
-In order to investigate that, we created some instances of the hidden cluster with $n=200,k\in\{5,10\},d=200$. We then used our early coloring method several times with $r=200$ and saw if the results differed over 5 runs for each set. As the end results were the same for each time we ran the method independently of which run it was, we concluded that $r=200$ was enough to get a good approximation of the average coloring times for this parametrization at least.
+\subsection{How many runs are needed to get a good idea of when a vector is colored on average ?}
+In order to investigate that, we created four instances of the hidden cluster with $n=200,k\in\{5,10\},d=200$. We then used our early coloring method five times on each instance with $r=200$ and saw if the results differed over the five runs for each set. As the end results were the same for each time we ran the method independently of which run it was, we concluded that $r=200$ was enough to get a good approximation of the average coloring times for this parametrization at least.
 
-This does not mean that the average coloring time of each vector were very close for each method run, but it means that the earliest vector was always the same. While this was for a specific instance of the problem and on a small sample size of different instances, each try took a long time and we weren't able to run more to increase our certainty. There probably exists a smart statistics proof for showing what number is a good number of runs, but that wasn't the focus here.
+This does not mean that the average coloring time of each vector were very close for each time we ran the technique, but it means that the earliest vector was always the same. While this was for a specific instance of the problem and on a small sample size of different instances, each try took a long time and we weren't able to run more to increase our certainty. There probably exists a smart statistics proof for showing what number is a good number of runs, but that wasn't the focus here.
 
 \subsection{Does the early coloring technique work ?}\label{early_work}
 We want to know if the technique makes sense and works, so we created 100 instances of the hidden cluster with $n=200,k\in\{5,10,15\},d=200$, (so 100 for each $k$) and tried our technique with GSW, DGSW, MAC GSW and MAC DGSW, where MAC is defined in section \ref{pivot_colored_coloring_rules}. We then used our early coloring method with $r=200$ and recorded how often the technique successfully identified the hidden cluster. For DGSW with MAC which is actualy fully deterministic given the first pivot assuming random vector input, we made sure to use each of the 200 vectors as starting pivot exactly once.
 \subsubsection{Results}
 \begin{table}[h!]
 \centering
-\caption{Result of our experiments from section \ref{early_work} on the early coloring method to solve the hidden cluster problem. The results are the proportion of instances for which the early coloring method worked out of 100 runs for each of the 12 cases.}
+\caption{Results of our experiments from section \ref{early_work} on the early coloring method to solve the hidden cluster problem. The results are the proportion of instances for which the early coloring method worked out of 100 runs for each of the 12 cases.}
 \begin{tabular}{l|ll|ll|ll}
 $k$  & \multicolumn{2}{c}{5} & \multicolumn{2}{c}{10} & \multicolumn{2}{c}{15}\\
 Rule &R&MAC&R&MAC&R&MAC\\ \hline
@@ -846,28 +870,28 @@ DGSW &0.28&0.22&0.5&0.52&0.69&0.7\\
 \end{tabular}
 \label{early_coloring_method_exp1}
 \end{table}
-Results are available in Table \ref{early_coloring_method_exp1}. We see that the bigger the hidden cluster, the easier it seems to be to find which is expected as the random chance of finding it is also higher. Nevertheless for each dimension the proportion of runs in which the method works is way higher than the proportion of points that are part of the hidden cluster, so the method seems effective. Using the MAC pivot rule seems to help a little bit, but that is hard to tell for certain and I doubt that the difference is statistically significant with our sample size. On the other hand, the DGSW variant successfully identifies the cluster very slightly more often than the original GSW variant, but this could very well again be because of the small sample size.
+Results are available in table \ref{early_coloring_method_exp1}. We see that the bigger the hidden cluster, the easier it seems to be to find which is expected, among other things because the random chance of finding it is also higher. Nevertheless for each dimension the proportion of runs in which the method works is way higher than the proportion of points that are part of the hidden cluster, so the method seems effective. Using the MAC pivot rule seems to help a little bit, but that is hard to tell for certain and I doubt that the difference is statistically significant with our sample size. On the other hand, the DGSW variant successfully identifies the cluster very slightly more often than the original GSW variant, but this could very well again be because of the small sample size.
 
 \subsection{Can we improve early coloring by choosing the pivot differently ?}\label{new_rule_tests}
-We used the two pivots rule described in section \ref{pivot_from_v_perp} and the early coloring technique to see whether they improved the results. For the random minimum move rule, one can notice that as in the first step $\delta^+=-\delta^-$, the first vector picked will always be the same, which let us test very quickly as only a single run was necessary instead of the 200 used previously. Additionally, one can see that there are no difference between the GSW and the DGSW for the early coloring method with this pivot rule, again because the first vector picked is always the same.
+We used the two pivots rule described in section \ref{pivot_from_v_perp} and the early coloring technique to see whether they improved the results. For the random minimum move rule, one can notice that as in the first step $\delta^+=-\delta^-$, the first vector picked will always be the same, which let us test very quickly as only a single run was necessary instead of the 200 used previously. Additionally, one can see that there are no difference between the GSW and the DGSW for the early coloring method with this pivot rule, again because the first vector picked is always the same. We do 1000 runs for each case.
 
-For the inverse move proportional rule,
+For the inverse move proportional rule, we cannot use $r=1$ and the tries take much longer. We are only able to do 50 runs for each case.
 
 We reproduce the experiment from section \ref{early_work}, except with the RMM and IMP pivot rules, and for the former, $r=1$ and 1000 runs. Additionally, we try both with and without changing the pivot at every step.
 
 \subsubsection{Results}
 \begin{table}[h!]
 \centering
-\caption{Result of our experiments from section \ref{new_rule_tests} on the early coloring method to solve the hidden cluster problem using the RMM pivot choice rule. The results are the proportion of instances for which the early coloring method worked out of 100 runs for each of the 12 cases.}
+\caption{Results of our experiments from section \ref{new_rule_tests} on the early coloring method to solve the hidden cluster problem using the RMM and IMP pivot choice rule. The results are the proportion of instances for which the early coloring method worked out of 1000 runs for each RMM case and 50 runs for each IMP case.}
 \begin{tabular}{l|ll|ll|ll}
 $k$  & \multicolumn{2}{c}{5} & \multicolumn{2}{c}{10} & \multicolumn{2}{c}{15}\\
 Rule &RMM&IMP&RMM&IMP&RMM&IMP\\ \hline
-GSW  &0.279&0.28&0.55&&0.687&\\
-GSW ANP&0.26&&0.537&&0.691&
+GSW  &0.279&0.28&0.55&0.54&0.687&0.68\\
+GSW ANP&0.26&0.24&0.537&0.54&0.691&0.66
 \end{tabular}
 \label{early_coloring_method_exp2}
 \end{table}
-Results are available in table \ref{early_coloring_method_exp2}.
+Results are available in table \ref{early_coloring_method_exp2}. Changing the pivot at each iteration doesn't seem to change much, perhaps because in RMM at least, the same pivot could be chosen again as it could still yield the shortest $\textbf{v}^\perp(t)$. The proportions are slightly higher in dimension 10 compared to those observed in section \ref{early_work}, but that doesn't seem to be the case for the other $k$'s who produced similar proportions, so this might just be because of the sample size. Overall this doesn't appear to be an improvement, especially because there are slightly more computations in when using that variant.
 
  
 %\subsection{Can we stop each run earlier ?}
@@ -875,16 +899,16 @@ Results are available in table \ref{early_coloring_method_exp2}.
 
 %\subsection{Can we use even less runs for our average ?}
 
-\section{Next interesting directions}
-It would be interesting to modify the algorithm to be able to divide vectors into $k$ balanced groups. While this can be achieved using multiple runs of the algorithm and starting points different from \textbf{0}, it loses some of the important properties of the original algorithm. One idea would be to have the coloring live in $(S_{m-1})^n$ instead of $[-1,1]^n$, where $S_{m-1}$ is  the $(m-1)$-dimensional regular simplex centered in \textbf{0} and $m$ is the number of groups we want to separate our vectors into.
+\section{Next Interesting Directions}
+It would be interesting to modify the algorithm to be able to divide vectors into $k$ balanced groups rather than only two. While this can be achieved using multiple runs of the algorithm and starting points different from \textbf{0}, it loses some of the important properties of the original algorithm. One idea would be to have the coloring live in $(S_{m-1})^n$ instead of $[-1,1]^n$, where $S_{m-1}$ is  the $(m-1)$-dimensional regular simplex centered in \textbf{0} and $m$ is the number of groups we want to separate our vectors into, but several aspects aren't easy to generalize with this framework.
 
 Another interesting direction would be to explore adding coordinates to the input vectors to convey information, and more generally modifying the vector set to influence the outcome. For example, it is possible to make sure that a pair of vectors are together or not together in a GSW assignment by replacing both vectors in the set by a single vector that is either their sum or difference. There are probably other similar possibilities that could be interesting to explore in that direction.
 
-Yet another interesting area where improvements could be made is using quadratic programming when computing the update direction, similarly to what we do at the end of Section \ref{norm_affect_when}. While it might increase the asymptotic running time of the algorithm, doing it only when $\textbf{v}^\perp(t)=\sum_{i=1}^n\textbf{u}_t(i)\textbf{v}_i=\textbf{0}$ means that most of the results about the classical GSW still hold, and this is just a way to force some good properties on our solution by restricting partially the infinity of equally valid solution of the original least-squares problem.
+Yet another interesting area where improvements could be made is using quadratic programming when computing the update direction, similarly to what we do at the end of section \ref{norm_affect_when}. While it might increase the asymptotic running time of the algorithm, doing it only when $\textbf{v}^\perp(t)=\sum_{i=1}^n\textbf{u}_t(i)\textbf{v}_i=\textbf{0}$ means that most of the results about the classical GSW still hold, and this is just a way to force some good properties on our solution by restricting partially the infinity of equally valid solution of the original least-squares problem.
 
-There probably exists a different method to solve the issue described in Section \ref{bigger_earlier} that allows us to keep more guarantees and increase the norm of the resulting vectors of imbalances less, potentially by using the tools mentioned in the previous two paragraphs.
+There probably exists a different method to solve the issue described in section \ref{bigger_earlier} that allows us to keep more guarantees and increase the norm of the resulting vectors of imbalances less, potentially by using the tools mentioned in the previous two paragraphs.
 
-There could be a way to adapt what was done in section \ref{structured_subgroups} to problems such as the planted clique, using a smart normalization and a correct version of the GSW. I did not succeed in consistently solving instances of that problem with a method similar to the one presented for the hidden cluster, but using the GSW to identify structured subsets seems promising.
+There could be a way to adapt what was done in section \ref{structured_subgroups} to problems such as the planted clique, using a smart normalization and a specialized version of the GSW. I did not succeed in consistently solving instances of that problem with a method similar to the one presented for the hidden cluster, but using the GSW to identify structured subsets seems promising. One could also look at coloring step correlations between pairs of element, as one could hope that these measures could be high between two elements of a structured subgroup.
 
 Being able to explicitly compute the distribution of assignments or of vectors of imbalances produced via the GSW without enumerating all potential possibilities could greatly help understand it.
 
@@ -892,7 +916,7 @@ Another interesting experiment could be to actually see how the discrepancy, tha
 
 It would be interesting to see what the applications of the generalization described in section \ref{different_basis_section} could be, and how the results about subgaussianity can generalize to this variant depending on the basis $\mathcal{B}$.
 
-Finally, applying this algorithm in various field where it could make an impact and seeing how it improves them would be very interesting. For example, using this algorithm to provide balanced training and testing sets when doing machine learning with small data sets could be useful. Additionally, maybe forcing deep learning batches to be balanced or not at different moments of the training procedure could improve training time and help get out of local minimas or do some fine tuning, but given the size of the datasets generally used in deep learning, this might be too computationally expensive to run it on the whole dataset at least.
+Finally, applying this algorithm in various field where it could make an impact and seeing how it improves them would be very interesting. For example, using this algorithm to provide balanced training and testing sets when doing machine learning with small data sets could be useful. Additionally, maybe forcing deep learning batches to be balanced or not at different moments of the training procedure could improve training time and help get out of local minimas or do some fine tuning, but given the size of the datasets generally used in deep learning, this might be too computationally expensive to run if done on the whole dataset.
 %using the algorithm in machine learning to balance training and testing set, maybe balance batches in deep learning but probably too computationally expensive.
 \newpage
 %\appendix
