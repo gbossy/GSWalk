@@ -164,7 +164,7 @@ It produces an assignment $\textbf{z}$ such that the corresponding vector of imb
     \Input{$\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$%with $\ell_2$ norm  at most 1
 , an initial coloring $\textbf{z}_0\in[-1,1]^n$}
     \Output{a coloring $\textbf{z}_n \in \{-1,1\}^n$}
-   $A_1=\{i\in[n]:|\textbf{z}_0(i)|<1\}$, $n(1) = \max \{i \in A_1\}$ and $t=1$.\\
+   $A_1=\{i\in[n]:|\textbf{z}_0(i)|<1\}$, $p(1) = \max \{i \in A_1\}$ and $t=1$.\\
     \While{$A_t\not=\emptyset$}{
         Compute $\textbf{u}_t\in\mathbb{R}^n$ such that
         $\begin{cases}
@@ -279,7 +279,7 @@ Another way to do it would be to choose the sign according to a distribution tha
 \multido{\i=0+1}{3}{
 \includegraphics[width=12.7cm]{3d_example/gswalkboth\i.pdf}
 }
-\caption{Example of a GSW run with 3 vectors in 2 dimension. The left part shows the cube where the coloring is living, and the right part shows the vector of imbalances and the input vectors.}
+\caption{Example of a Gram-Schmidt walk run with 3 vectors in 2 dimension. The left part shows the cube where the coloring is living, and the right part shows the vector of imbalances and the input vectors.}
 \label{3d_example}
 
 \end{figure}
@@ -307,7 +307,7 @@ $$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^
 \end{definition}
 This definition will help us give a concrete result on the balancing power of the GSW. A random vector being $1$-subaussian means that it is less spread that a gaussian with covariance matrix being the identity. We can see that for the vectors of imbalances of the GSW, on figure \ref{4types_3}, it seems to indeed be the case. This was proved, first for $\sigma^2=40$ in \cite{blues} and then for $\sigma^2=1$ in \cite{harshaw2019balancing}.
 \begin{theorem}[\cite{harshaw2019balancing}]
-    For $\textbf{z}$ sampled via the Gram-Schmidt walk, we have that $\textbf{Bz}$ is subgaussian with parameter $\sigma^2=1$.%:$$\mathbb{E}[exp(\langle\textbf{Bz},\textbf{v}\rangle)]\leq exp(\|\textbf{v}\|^2_2/2)\quad\forall\textbf{v}\in\mathbb{R}^{n+d}$$
+    For $\textbf{z}$ sampled via the Gram-Schmidt walk with input $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^d$ each with $\ell_2$ norm at most 1, we have that $\textbf{Bz}$ is subgaussian with parameter $\sigma^2=1$.%:$$\mathbb{E}[exp(\langle\textbf{Bz},\textbf{v}\rangle)]\leq exp(\|\textbf{v}\|^2_2/2)\quad\forall\textbf{v}\in\mathbb{R}^{n+d}$$
 \end{theorem}
 This result is necessary to prove that the GSW indeed gives a constructive algorithm for Theorem \ref{banaszczyk}, by using Theorem \ref{equivalence}.
 

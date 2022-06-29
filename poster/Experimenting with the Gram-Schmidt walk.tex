@@ -1,0 +1,188 @@
+\documentclass[a0poster,colspace=30pt,innermargin=15pt,blockverticalspace=15pt]{tikzposter} % See Section 3
+\title{Experimenting with the Gram-Schmidt Walk\vspace{-2ex}} \institute{Chair of Combinatorial Analysis} % See Section 4.1
+\author{Gaëtan Bossy\\
+Supervision by Pr. Adam Marcus} %\titlegraphic{\includegraphics[height=2cm]{logo-epfl-rogned.png}}
+\usetheme{Envelope} % See Section 5
+\usepackage[linesnumbered,ruled]{algorithm2e}%ruled in 1st param
+
+%to fix algo issues
+\AtBeginEnvironment{algorithm}{%
+  \setlength{\columnwidth}{\linewidth}%
+}
+
+%to include pdf plots
+\usepackage{pdfpages}
+
+%To do loops
+\usepackage{multido}
+
+%to include plots generated in python
+\usepackage[utf8]{inputenc}
+\usepackage{pgfplots}
+\DeclareUnicodeCharacter{2212}{−}
+\usepgfplotslibrary{groupplots,dateplot}
+\usetikzlibrary{patterns,shapes.arrows}
+\pgfplotsset{compat=newest}
+
+
+\definetitlestyle{sampletitle}{
+width=500mm, roundedcorners=20, linewidth=2pt, innersep=5pt,
+titletotopverticalspace=0mm, titletoblockverticalspace=0mm,titlegraphicheight=0mm
+}{
+\begin{scope}[line width=\titlelinewidth, rounded corners=\titleroundedcorners]
+\draw[color=blocktitlebgcolor, fill=titlebgcolor]
+(\titleposleft,\titleposbottom) rectangle (\titleposright,\titlepostop);
+\end{scope}
+}
+
+\usetitlestyle{Envelope}%Default, Basic, Envelope, Wave, VerticalShading,Filled, Empty
+%Wave too big
+
+%to bold symbols
+\usepackage{bm}
+
+\usepackage{amsmath}
+%\usepackage{amsthm}
+\usepackage{amssymb}
+\DeclareMathOperator{\Span}{span}
+\newtheorem{theorem}{Theorem}
+
+\begin{document}
+
+\maketitle[titletotopverticalspace=0pt,titletoblockverticalspace=15pt,innersep=0pt] % See Section 4.1
+\begin{columns} % See Section 4.4
+\column{0.6}
+\begin{subcolumns}
+\subcolumn{0.8}
+\block[%bodywidthscale=0.83,titlewidthscale=0.83,bodyoffsetx=-4cm,
+bodyinnersep=0.4cm]{Banaszczyk's Theorem}{
+A fondamental theorem in discrepancy theory is the following result:
+\begin{theorem}[Banaszczyk, 1998]\label{banaszczyk}
+For all convex body $K \subseteq \mathbb{R}^d$, with Gaussian measure $\gamma_m(K)\geq 1/2$, and given $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^d$, $\|\textbf{v}_i\|_2 \leq 1$ for all $i$, then there exists $ \textbf{z} \in \{-1, 1\}^n$ such that
+$\sum_{i=1}^n \textbf{z}(i)\textbf{v}_i \in 5K. $
+\end{theorem}
+%The Gaussian measure of a body is defined as $\gamma_m(S) = \mathbb{P}[\textbf{g} \in S] = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}$ where $\textbf{g}$ is a standard Gaussian random vector in $\mathbb{R}^m$, i.e. $\textbf{g} \sim \mathcal{N}(0, I_m)$. 
+
+While this results gives the best known bounds for several well-known discrepancy problems, its proof is non-constructive. For years, mathematicians tried to come up with a constructive algorithm to generate the colorings whose existence is proved by the theorem. In 2016, Dadush, Garg, Lovett and Nikolov proved that actually, all that is needed is an algorithm to generate a coloring $\textbf{z}$ such that the corresponding \textbf{vector of imbalances}, $\textbf{Bz}$, where $\textbf{B}= (\textbf{v}_1, \dots, \textbf{v}_n) \in \mathbb{R}^{d \times n}$, would be $\sigma$-subgaussian with $\sigma>0$ a constant.
+
+%A random vector $\textbf{Y} \in \mathbb{R}^m$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if for all $\bm{\theta} \in \mathbb{R}^m$:$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^2\|\bm{\theta}\|_2^2/2}.$
+%A $\sigma$-subgaussian vector is basically at least as centered as a gaussian vector with the same variance $\sigma^2$.
+
+}
+%\note[width=18cm,connection,targetoffsetx=23cm,targetoffsety=5cm]{The Gaussian measure of a body is defined as $%$
+%\gamma_m(S) = \mathbb{P}[\textbf{g} \in S]% = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}$
+%$ where $\textbf{g}$ is a standard Gaussian random vector in $\mathbb{R}^m$, i.e. $\textbf{g} \sim \mathcal{N}(0, I_m)$.}
+\subcolumn{0.2}
+\note[width=9cm,targetoffsetx=17.3cm,targetoffsety=6cm,innersep=0.4cm]{The Gaussian measure of a body is defined as $$
+\gamma_m(S) = \mathbb{P}[\textbf{g} \in S]% = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}
+$$ where $\textbf{g}$ is a standard Gaussian random vector in $\mathbb{R}^m$, i.e. $\textbf{g} \sim \mathcal{N}(0, I_m)$.}
+
+%\note[width=13cm,targetoffsetx=18cm,targetoffsety=5cm,innersep=0.4cm]{The Gaussian measure of a body is defined as $$\gamma_m(S) = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}.$$}
+
+\note[width=9cm,targetoffsetx=17.3cm,targetoffsety=-3.5cm,innersep=0.4cm]{A random vector $\textbf{Y} \in \mathbb{R}^m$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if for all $\bm{\theta} \in \mathbb{R}^m$:$$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^2\|\bm{\theta}\|_2^2/2}.$$}
+
+\end{subcolumns}
+
+\begin{subcolumns}
+\subcolumn{0.85}
+\block[bodyinnersep=0.4cm]{The Gram-Schmidt Walk}{
+%\section{General idea}
+%The idea of the algorithm is that it walks step by step in the hypercube of dimension $n$, $[-1,1]^n$. We start at some initial fractional coloring $\textbf{z}_0\in[-1,1]^n$. At each step, the coloring moves in the hypercube until at least one additional coordinate becomes 1 or -1, that is it moves to a facet of the hypercube it wasn't on yet. Once a coordinate is set to -1 or 1, it won't move for the rest of the algorithm, thus after step $i$ our fractional coloring is in the intersection of at least $i$ different facets. From all this, we can see that the algorithm reaches a non fractional coloring $\textbf{z}_t\in\{-1,1\}^n$ in at most $n$ steps.
+
+%The question now becomes "how to choose the facet to move to ?". To do so, the algorithm finds an update direction $\textbf{u}_t\in\mathbb{R}^n$ such that $\sum_{i=1}^n\textbf{u}_t(i)\textbf{v}_i$ is small, and updates $\textbf{z}_t$ into $\textbf{z}_{t+1}=\textbf{z}_t+\delta_t\textbf{u}_t$. $\delta_t\in\mathbb{R}$ is chosen so that $\textbf{z}_{t+1}\in[-1,1]^n$ and at least one additional coordinate now has absolute value 1. Moreover, $\delta_t$ is chosen randomly among the two potential candidates that fulfill the previously mentioned condition, and the distribution between the two candidates is engineered so that its expectation is 0 and no direction is favored. Thus before the algorithm starts, ending at $\textbf{z}_t\in\{-1,1\}^n$ or at $-\textbf{z}_t\in\{-1,1\}^n$ is equally likely.
+
+%\section{Pseudocode}
+%The algorithm takes as input $\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$, and an initial coloring $\textbf{z}_0\in[-1,1]^n$. A run of the algorithm consists of at most $n$ time steps because at least an element is colored during each step thanks to the choice of $\delta_t$. At the end of each time step $t$, the algorithm obtains a fractional coloring $\textbf{z}_t\in[-1,1]^n$. An element $i \in [n]$ is said to be \textit{alive} at time $t$ if $|\textbf{z}_{t-1}(i)|<1$, and \textit{fixed} otherwise. Let $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$. The \textit{pivot} $p(t)$ is an element that is alive at time $t$, which can for example be chosen as the largest indexed element among the elements that are still alive. We define the set $V_t$ as $\Span\{\textbf{v}_i:i\in A_t,i\not=p(t)\}$. We denote by $\Pi_{V_t^\perp}$ the projection operator on $V_t^\perp$. Finally, we need $\textbf{v}^{\perp}(t)=\Pi_{V_t^\perp}(\textbf{v}_{p(t)})$ as the projection of the pivot vector over all alive vectors. 
+\begin{algorithm}[H]\label{walk}
+{\fontsize{32}{32}
+\caption{The Gram-Schmidt walk (\textbf{GSW})
+%, a vector balancing algorithm 
+by Dadush, Bansal, Garg and Lovett, 2018}
+    \SetKwInOut{Input}{Input}
+    \SetKwInOut{Output}{Output}
+    \Input{$\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$%with $\ell_2$ norm  at most 1
+, an initial coloring $\textbf{z}_0\in[-1,1]^n$}
+    \Output{a coloring $\textbf{z}_n \in \{-1,1\}^n$}
+   $t=1$,$A_1=\{i\in[n]:|\textbf{z}_0(i)|<1\}$ and $p(1) = \max \{i \in A_1\}$\\
+    \While{$A_t\not=\emptyset$}{
+       % Compute $\textbf{u}_t\in\mathbb{R}^n$ such that
+%        $\begin{cases}
+%            \textbf{u}_t(p(t)) =1\\
+%            \textbf{u}_t(i) =0 \text{ if } i \notin A_t\\
+%            \textbf{v}^\perp(t) = \textbf{v}_{p(t)} + \sum_{i \in A_t\setminus\{p(t)\}} \textbf{u}_t(i)\textbf{v}_i\\
+%        \end{cases}$\\
+$\textbf{u}_t = \arg\min_{\textbf{u} \in U} \|\textbf{Bu}\|$ where $U=\{u\in\mathbb{R}^n:u(p(t))=1$ and $u(i)=0\forall i\not\in A_t\}$\\
+        $\Delta = \{\delta : \textbf{z}_{t-1} + \delta \textbf{u}_t \in [-1,1]^n\}$, let $\begin{cases}
+            \delta_t^+ = \max \Delta\\
+            \delta_t^- = \min \Delta
+        \end{cases}$then $\delta_t = \begin{cases}
+            \delta_t^+ \text{ w.p. } \frac{-\delta_t^-}{(\delta_t^+ - \delta_t^-)}\\
+            \delta_t^- \text{ w.p. } \frac{\delta_t^+}{(\delta_t^+ - \delta_t^-)}
+        \end{cases}$\\
+        $\textbf{z}_t = \textbf{z}_{t-1} + \delta_t \textbf{u}_t$, $t\leftarrow t+1$,  $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$, $p(t) = \max \{i \in A_t\}$
+    }
+    Output $\textbf{z}_T\in\{-1,1\}^n$.
+    %\caption{Gram-Schmidt walk}
+    }%
+    \end{algorithm}
+This algorithm produces an assignment $\textbf{z}$ such that the corresponding vector of imbalances, $\textbf{Bz}$, has a small norm. Another way to describe it is that it divides the vectors in two groups such that the sum of the vectors in each group are pretty close. One small modification one can do is to always choose the $\delta$ with the smallest absolute value in line 4. We call this modification the \textbf{Deterministic Gram-Schmidt Walk} (\textbf{DGSW}).
+\begin{theorem}[Harshaw, Spielman, Zhang, Sävje, 2019]
+    For $\textbf{z}$ sampled via the Gram-Schmidt walk with input $\textbf{v}_1, \dots, \textbf{v}_n\in \mathbb{R}^{d}$ with euclidean norm at most 1, we have that $\textbf{Bz}$ is subgaussian with parameter $\sigma^2=1$.%:$$\mathbb{E}[exp(\langle\textbf{Bz},\textbf{v}\rangle)]\leq exp(\|\textbf{v}\|^2_2/2)\quad\forall\textbf{v}\in\mathbb{R}^{n+d}$$
+\end{theorem}
+} 
+
+\subcolumn{0.15}
+
+\note[width=2cm,targetoffsetx=14.7cm,targetoffsety=0.5cm,innersep=0.4cm,connection,radius=14cm, angle=55]{}
+
+\note[width=11cm,targetoffsetx=15.7cm,targetoffsety=3.2cm,innersep=0.4cm,connection,angle=-35,radius=13cm]{$(\textbf{z}_t)_{t\in\{1,\dots,n\}}$ is actually a martingale as $\mathbb{E}[\delta_t|\delta_t^+,\delta_t^-]=0$.}
+
+\note[width=13cm,targetoffsetx=15.2cm,targetoffsety=6.2cm,innersep=0.4cm,connection, angle =-10, radius=12cm]{If $V_t=\Span\{\textbf{v}_i:i\in A_t\setminus\{p(t)\}\}$, $\textbf{u}_t$ can be chosen as a solution of $\Pi_{V_t}(\textbf{v}_{p(t)}) + \sum_{i \in A_t\setminus\{p(t)\}} \textbf{u}_t(i)\textbf{v}_i=\textbf{0}$, $\textbf{u}_t\in U$ where $\Pi_{V_t}$ is the projector on $V_t$.}
+
+\note[width=9cm,targetoffsetx=5.2cm,targetoffsety=8.7cm,innersep=0.4cm,connection,radius=18cm, angle=12]{This is equivalent to choosing the pivot randomly out of $A_t$ when the previous pivot has been colored.}
+
+%\note[width=13cm,targetoffsetx=18cm,targetoffsety=5cm,innersep=0.4cm]{The Gaussian measure of a body is defined as $$\gamma_m(S) = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}.$$}
+
+%\note[width=10cm,targetoffsetx=17cm,targetoffsety=-3.5cm,innersep=0.4cm]{A random vector $\textbf{Y} \in \mathbb{R}^m$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if for all $\bm{\theta} \in \mathbb{R}^m$:$$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^2\|\bm{\theta}\|_2^2/2}.$$}
+
+\end{subcolumns}
+\block[bodyinnersep=0.4cm]{Changing the Pivot Rule}{
+In the pseudocode given above, the pivot $p(t)$ is chosen through the order of the input vector. It could also be chosen randomly, as that would be equivalent to shuffling the input vectors which do not have a specific order. One area of potential improvement for this algorithm is to add rules for the choice of the pivot. For example, it could depend on the norm of the vectors in $A_t$, on  how much they would move the vector of imbalances in expectation, or on the fractional coloring. One promising variant that seems to improve the algorithm regarding the minimization of the vector of imbalances is to choose the pivot as $p(t)=\arg\max_{i\in A_t}|x(i)|$. This rule, called \textbf{maximum absolute coloring} (\textbf{MAC}) changes the behavior of the algorithm as can be seen in figures \ref{max_col_comp} and \ref{max_col_norms}.
+}
+
+\block[bodyinnersep=0.4cm]{Plot of Average Norm of Vectors of Imbalances}{
+\begin{tikzfigure}[Plot of average norm of vectors of imbalances for the GSW, the GSW with MAC and the DGSW with MAC, each obtained from an input of $n$ vectors sampled uniformly from the ball of radius 1 in $\mathbb{R}^d$ with random pivot rule and maximum absolute coloring pivot rule. For small $n$'s, there is also a plot of the average norm of shortest vectors of imbalances obtained by brute force\par\vspace{-1ex}]
+\vspace{-1ex}\hspace{-3ex}
+%\input{}
+\label{max_col_norms}
+\vspace{-1ex}
+\end{tikzfigure}}
+
+\column{0.4}
+\block[bodyinnersep=0.4cm]{A Gram-Schmidt Walk Run}{
+\begin{tikzfigure}[Example of a GSW run with 3 vectors in $\mathbb{R}^2$. The left part shows the cube where the coloring is living, and the right part shows the vector of imbalances and the input vectors.\par\vspace{-1ex}]
+\vspace{-1ex}\hspace{-3ex}
+\multido{\i=0+1}{3}{
+\includegraphics[width=27cm]{3d_example/gswalkboth\i.pdf}
+}\vspace{-1ex}
+\end{tikzfigure}
+}
+%\note{Notetext} % See Section 4.3
+\block[bodyinnersep=0.4cm]{Plot of Vectors of Imbalances}{
+\begin{tikzfigure}[Plot of vectors of imbalances for the GSW and DGSW, each obtained from an input of 100 vectors sampled uniformly from the ball of radius 1 in $\mathbb{R}^2$ with random and maximum absolute coloring pivot rules.\par\vspace{-1ex}]
+\vspace{-1ex}\hspace{-3ex}
+\input{max_col_comparison}\label{max_col_comp}
+\vspace{-1ex}
+\end{tikzfigure}}
+%100 points for each variant on the graph.
+
+\block[bodyinnersep=0.4cm]{Going Further}{
+There are various areas where this algorithm could be improved The choice of the direction could be changed slightly to adapt it to some problematic inputs that exist for $n>d$. The pivot choice could be done in many ways to improve some aspects. The input vectors could be modified to add additional known information or constraints about the assignment. The modification discussed in my thesis, that minimizes balance in a certain way, could certainly be better understood. The algorithm could be generalized to separate inputs into more than 2 groups in a single run. All these aspects and several more could be extremely interesting to study more in details.
+
+Additionally, it would also be interesting to explore further the use of the algorithm to solve problems regarding hidden substructures in large sets, such as the planted clique, or the potential usages of a vector balancing algorithm in machine learning.
+}
+
+\end{columns}
+\end{document}
+
+%Cool todo: remove end in while loop
