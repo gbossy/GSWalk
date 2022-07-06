@@ -21,6 +21,8 @@ matplotlib.rcParams.update({
     'text.usetex': True,
     'pgf.rcfonts': False,
 })
+matplotlib.rc('xtick', labelsize=20) 
+matplotlib.rc('ytick', labelsize=20) 
 float_formatter = "{:.3e}".format
 #np.set_printoptions(formatter={'float_kind':float_formatter})
 #plt.rcParams.update({'font.size': 22})
@@ -516,7 +518,7 @@ def gram_schmidt_walk(v,x,plot=False,debug=False,smallest_delta=False,basis=None
         else:
             u=u_in_basis
         if plot:
-            plot_situation(v,p,x,u,[d1,d2],i)
+            plot_situation(v,p,x,u,[d1,d2],i,alive)
         x_in_basis+=d1*u_in_basis
         x+=d1*u
         if debug:
@@ -587,7 +589,7 @@ def latex_vector(x):
     #formats vectors to look good in tikz pictures for tex documents
     return str(list(x)).replace('[','').replace(']','').replace(',','\\ \n')
         
-def plot_situation(v,p,x,u,deltas,i):
+def plot_situation(v,p,x,u,deltas,i,alive):
     #plots GSW situation step by step, with 3d plot for n=3
     fig = plt.figure(figsize=plt.figaspect(0.5))
     fig.subplots_adjust(wspace=0.1, hspace=0)
@@ -596,19 +598,42 @@ def plot_situation(v,p,x,u,deltas,i):
     ax1.plot([v[e][0] for e in range(len(v)) if np.abs(x[e])<1],[v[e][1] for e in range(len(v)) if np.abs(x[e])<1],'o',label='Colorless vector')
     ax1.plot([v[e][0] for e in range(len(v)) if np.abs(x[e])==1],[v[e][1] for e in range(len(v)) if np.abs(x[e])==1],'o',label='Colored vector')
     ax1.plot(v[p][0],v[p][1],'*',label='Pivot vector',markersize=12)
+    B_form=r'\bf{B}'
+    z_form=r'\textbf{z}'
+    u_form=r'\textbf{u}'
+    v_form=r'\textbf{v}'
+    for j in range(len(v)):
+        ax1.text(v[j][0],v[j][1],f'${v_form}_{j+1}$', size=20, zorder=1, color='k')
+    
+
     B=np.transpose(np.vstack(tuple([e for e in v])))
     ax1.plot(np.matmul(B,x)[0],np.matmul(B,x)[1],'X',label='Current balance',markersize=15)
+    if i!=0:
+        ax1.text(np.matmul(B,x)[0],np.matmul(B,x)[1],f'${B_form}{z_form}_{i}$', size=20, zorder=1, color='k')
+    else:
+        ax1.text(np.matmul(B,x)[0],np.matmul(B,x)[1],f'${B_form}{z_form}_{i}={B_form}({z_form}_{i}+\delta^-_{i+1}{u_form}_t)={B_form}({z_form}_{i}+\delta^+_{i+1}{u_form}_t)$', size=20, zorder=1, color='k')
+    deltas.sort()
     x_1=x+deltas[0]*u
     x_2=x+deltas[1]*u
     xs=[x_1,x_2]
-    print(f'xs: {xs}')
-    print(f'sum:{[np.matmul(B,x) for x in xs]}')
     ax1.plot([np.matmul(B,x)[0] for x in xs],[np.matmul(B,x)[1] for x in xs],'<',label='Potential update')
-    plt.figtext(0.45,0.04, f"$\delta^+_t,\delta^-_t ={str(list(np.round(np.array(deltas),3))).replace('[','').replace(']','')}$")
-
+    np.matmul(B,xs[0])[0],np.matmul(B,xs[0])[1]
+    if i!=0:
+        ax1.text(np.matmul(B,xs[0])[0],np.matmul(B,xs[0])[1],f'${B_form}({z_form}_{i}+\delta^-_{i+1}{u_form}_t)$', size=20, zorder=1, color='k')
+        ax1.text(np.matmul(B,xs[1])[0],np.matmul(B,xs[1])[1],f'${B_form}({z_form}_{i}+\delta^+_{i+1}{u_form}_t)$', size=20, zorder=1, color='k')
+    alive=[j+1 for j in range(len(alive)) if alive[j]]
+    alive_formatted=str(alive).replace('[','\{').replace(']','\}')
+    plt.figtext(0.3,0.04, f"$t={i+1},\quad A_{i+1}={alive_formatted},\quad p({i+1})={1+p},\quad\delta^-_t ={np.round(np.array(deltas[0]),3)},\quad \delta^+_t={np.round(np.array(deltas[1]),3)}$",size=20)
+    ax1.xaxis.set_major_locator(plt.MaxNLocator(5))
+    ax1.yaxis.set_major_locator(plt.MaxNLocator(5))
     if x.shape[0]==3:
         ax = fig.add_subplot(1, 2, 1, projection='3d')
-
+        ax.set_yticks([-1,-0.5,0,0.5,1])
+        ax.set_yticklabels([-1,-0.5,0,0.5,1],fontsize=20)
+        ax.set_xticks([-1,-0.5,0,0.5,1])
+        ax.set_xticklabels([-1,-0.5,0,0.5,1],fontsize=20)
+        ax.set_zticks([-1,-0.5,0,0.5,1])
+        ax.set_zticklabels([-1,-0.5,0,0.5,1],fontsize=20)
         sn = 1   #limits in x,y,z
         x1, x2 = -sn, sn
         y1, y2 = -sn, sn    
@@ -626,7 +651,10 @@ def plot_situation(v,p,x,u,deltas,i):
         ax.plot_surface(x_,y,z+1, alpha=0.15, color='blue')   # plot the plane z=1
         ax.plot_surface(x_,y,z-1, alpha=0.15, color='blue')   # plot the plane z=-1
         ax.scatter(x[0],x[1],x[2],label='Current coloring')
+        ax.text(x[0],x[1],x[2],f'${z_form}_{i}$', size=20, zorder=1, color='k') 
         ax.scatter([x_1[0],x_2[0]], [x_1[1],x_2[1]],zs=[x_1[2],x_2[2]],label='Potential update')
+        ax.text(x_1[0],x_1[1],x_1[2],f'${z_form}_{i}+\delta^-_{i+1}{u_form}_t$', size=20, zorder=1, color='k') 
+        ax.text(x_2[0],x_2[1],x_2[2],f'${z_form}_{i}+\delta^+_{i+1}{u_form}_t$', size=20, zorder=1, color='k') 
         ax.plot([x_1[0],x_2[0]], [x_1[1],x_2[1]],zs=[x_1[2],x_2[2]],label='Update direction')
 
         # Set limits of the 3D display
@@ -636,9 +664,11 @@ def plot_situation(v,p,x,u,deltas,i):
 
         # Set labels at the 3d box/frame
         if sum(np.abs(x)==1)==2:
-            ax.legend(bbox_to_anchor=(0.8, -0.07))
+            pass
+            #ax.legend(bbox_to_anchor=(0.8, -0.07))
     if sum(np.abs(x)==1)==2:
-        ax1.legend(bbox_to_anchor=(1.1, -0.07),ncol=2)
+        pass
+        #ax1.legend(bbox_to_anchor=(1.1, -0.07),ncol=2)
     plt.savefig(f"gswalkboth{i}.pdf", bbox_inches='tight')
     tikzplotlib.save(f"gswalk{i}both.tex")
     plt.show()
