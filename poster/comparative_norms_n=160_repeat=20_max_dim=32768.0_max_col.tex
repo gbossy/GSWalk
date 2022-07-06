@@ -1,0 +1,635 @@
+% This file was created with tikzplotlib v0.10.1.
+\begin{tikzpicture}
+
+\definecolor{crimson2143940}{RGB}{214,39,40}
+\definecolor{darkorange25512714}{RGB}{255,127,14}
+\definecolor{darkslategray38}{RGB}{38,38,38}
+\definecolor{forestgreen4416044}{RGB}{44,160,44}
+\definecolor{lightgray204}{RGB}{204,204,204}
+\definecolor{steelblue31119180}{RGB}{31,119,180}
+
+\begin{groupplot}[group style={group size=3 by 2, vertical sep=140pt, horizontal sep=90 pt,ylabels at=edge left},width=14cm,height=14cm,xmin=2, xmax=32768]
+\nextgroupplot[
+axis line style={lightgray204},
+legend cell align={left},
+legend style={
+  fill opacity=0.8,
+  draw opacity=1,
+  text opacity=1,
+  at={(3.5,0.05)},
+  anchor=south east,
+  draw=none
+},
+log basis x={10},
+ytick distance=0.5,
+tick align=outside,
+tick pos=left,
+title={n = 5 vectors},
+x grid style={lightgray204},
+xlabel=\textcolor{darkslategray38}{\small Dimension of the vectors},
+xmajorgrids,
+xmode=log,
+xtick style={color=darkslategray38},
+xtick={0.1,1,10,100,1000,10000,100000,1000000},
+xticklabels={
+  \(\displaystyle 10^{-1}\),
+  \(\displaystyle 10^{0}\),
+  \(\displaystyle 10^{1}\),
+  \(\displaystyle 10^{2}\),
+  \(\displaystyle 10^{3}\),
+  \(\displaystyle 10^{4}\),
+  \(\displaystyle 10^{5}\),
+  \(\displaystyle 10^{6}\)
+},
+y grid style={lightgray204},
+ylabel=\textcolor{darkslategray38}{\small \small Average norm over 1000 runs},
+ymajorgrids,
+ymin=0, ymax=2.33037203007402,
+ytick style={color=darkslategray38},
+ytick={0,1,2},
+yticklabels={
+  \(\displaystyle 0\),
+  \(\displaystyle 1\),
+  \(\displaystyle 2\),
+}
+]
+\addplot [thick, steelblue31119180]
+table {%
+2 0.725885247935057
+4 1.06804241875013
+8 1.48630027825432
+16 1.81589859843917
+32 2.01346123112685
+64 2.13110037485254
+128 2.1797687419633
+256 2.21448764797278
+512 2.22182715791898
+1024 2.22846121023495
+2048 2.2315937632598
+4096 2.23395401718205
+8192 2.23471819471962
+16384 2.23541268109728
+32768 2.23606837435418
+};
+\addlegendentry{GSW}
+\addplot [thick, darkorange25512714]
+table {%
+2 0.652410710514138
+4 0.93998864267492
+8 1.33006272444076
+16 1.66304253507335
+32 1.87891007238734
+64 1.99779701950075
+128 2.09225031565771
+256 2.13884143681023
+512 2.1754057939251
+1024 2.19144836589604
+2048 2.20537735152823
+4096 2.21557801446247
+8192 2.22073140842868
+16384 2.225816873593
+32768 2.22928673619057
+};
+\addlegendentry{MC DGSW}
+\addplot [thick, forestgreen4416044]
+table {%
+2 0.727627960594836
+4 1.08845812674368
+8 1.4727280779802
+16 1.8340289357929
+32 2.01401182855433
+64 2.13221027341244
+128 2.18296020044521
+256 2.2060792686017
+512 2.22525503977098
+1024 2.22902136469112
+2048 2.23297397933754
+4096 2.2338152894887
+8192 2.23492015930732
+16384 2.23546501095428
+32768 2.23573994455621
+};
+\addlegendentry{MC GSW}
+\addplot [thick, crimson2143940]
+table {%
+2 0.349995259957233
+4 0.745586905456825
+8 1.14261938161702
+16 1.48448275215293
+32 1.72829394412234
+64 1.88554075674287
+128 1.99697706538675
+256 2.07223793651122
+512 2.1197049607246
+1024 2.15357196582785
+2048 2.18013050882434
+4096 2.19675426428705
+8192 2.20842349777013
+16384 2.21612086336389
+32768 2.2221087026373
+};
+\addlegendentry{LDA}
+
+\nextgroupplot[
+axis line style={lightgray204},
+log basis x={10},
+tick align=outside,
+tick pos=left,
+title={n = 10 vectors},
+x grid style={lightgray204},
+xlabel=\textcolor{darkslategray38}{\small Dimension of the vectors},
+xmajorgrids,
+xmode=log,
+xtick style={color=darkslategray38},
+xtick={0.1,1,10,100,1000,10000,100000,1000000},
+xticklabels={
+  \(\displaystyle 10^{-1}\),
+  \(\displaystyle 10^{0}\),
+  \(\displaystyle 10^{1}\),
+  \(\displaystyle 10^{2}\),
+  \(\displaystyle 10^{3}\),
+  \(\displaystyle 10^{4}\),
+  \(\displaystyle 10^{5}\),
+  \(\displaystyle 10^{6}\)
+},
+y grid style={lightgray204},
+ylabel=\textcolor{darkslategray38}{\small Average norm over 1000 runs},
+ymajorgrids,
+ymin=0, ymax=3.3153130011071,
+ytick style={color=darkslategray38},
+ytick={0,1,2,3},
+yticklabels={
+  \(\displaystyle 0\),
+  \(\displaystyle 1\),
+  \(\displaystyle 2\),
+  \(\displaystyle 3\),
+}
+]
+\addplot [thick, steelblue31119180]
+table {%
+2 0.730387977140844
+4 1.07454562271808
+8 1.54905923158289
+16 2.11200756982195
+32 2.60415146745229
+64 2.88077355026236
+128 3.02414941788804
+256 3.09728598016533
+512 3.12830632964603
+1024 3.14161978031348
+2048 3.15254200838075
+4096 3.15799663218289
+8192 3.15920166939847
+16384 3.16111714253532
+32768 3.16152483513855
+};
+\addplot [thick, darkorange25512714]
+table {%
+2 0.525336091041823
+4 0.926648372109926
+8 1.36795988842879
+16 1.8711573310637
+32 2.33258856840569
+64 2.6375997786384
+128 2.81675747971372
+256 2.93388976773843
+512 3.01694392077739
+1024 3.05886625454876
+2048 3.09249162798751
+4096 3.1141177437442
+8192 3.12863323068566
+16384 3.13851859153112
+32768 3.14659991948233
+};
+\addplot [thick, forestgreen4416044]
+table {%
+2 0.628522904871021
+4 1.07822237844356
+8 1.5576477768795
+16 2.13496982295936
+32 2.6270188923442
+64 2.87622240326623
+128 3.02398501180112
+256 3.08962517997332
+512 3.12799958167101
+1024 3.14383293563345
+2048 3.15421351697196
+4096 3.15765634752001
+8192 3.16045386044481
+16384 3.16056889814354
+32768 3.16184795503664
+};
+\addplot [thick, crimson2143940]
+table {%
+2 0.092547033627458
+4 0.434918785181621
+8 0.976610159741337
+16 1.56668587771316
+32 2.01879357092335
+64 2.36828749682822
+128 2.60759513529195
+256 2.77672937305124
+512 2.89061888892472
+1024 2.97207701997941
+2048 3.02794633932224
+4096 3.06764244915016
+8192 3.09592722200594
+16384 3.11519462847434
+32768 3.12929651255484
+};
+
+\nextgroupplot[
+axis line style={lightgray204},
+log basis x={10},
+tick align=outside,
+tick pos=left,
+title={n = 20 vectors},
+x grid style={lightgray204},
+xlabel=\textcolor{darkslategray38}{\small Dimension of the vectors},
+xmajorgrids,
+xmode=log,
+xtick style={color=darkslategray38},
+xtick={0.1,1,10,100,1000,10000,100000,1000000},
+xticklabels={
+  \(\displaystyle 10^{-1}\),
+  \(\displaystyle 10^{0}\),
+  \(\displaystyle 10^{1}\),
+  \(\displaystyle 10^{2}\),
+  \(\displaystyle 10^{3}\),
+  \(\displaystyle 10^{4}\),
+  \(\displaystyle 10^{5}\),
+  \(\displaystyle 10^{6}\)
+},
+y grid style={lightgray204},
+ylabel=\textcolor{darkslategray38}{\small Average norm over 1000 runs},
+ymajorgrids,
+ymin=0, ymax=4.6946200096731,
+ytick style={color=darkslategray38},
+ytick={-1,0,1,2,3,4,5},
+yticklabels={
+  \(\displaystyle -1\),
+  \(\displaystyle 0\),
+  \(\displaystyle 1\),
+  \(\displaystyle 2\),
+  \(\displaystyle 3\),
+  \(\displaystyle 4\),
+  \(\displaystyle 5\)
+}
+]
+\addplot [thick, steelblue31119180]
+table {%
+2 0.689589933182214
+4 1.03181565787087
+8 1.51055781226817
+16 2.15756554710483
+32 2.97442435421719
+64 3.7038301463819
+128 4.08814912733074
+256 4.28409863210197
+512 4.37398066022352
+1024 4.42860547646989
+2048 4.44987980844648
+4096 4.46027164958298
+8192 4.46830469915949
+16384 4.46829228689566
+32768 4.47125424913743
+};
+\addplot [thick, darkorange25512714]
+table {%
+2 0.422850223851041
+4 0.815748243114603
+8 1.33836225003291
+16 1.95388004484869
+32 2.67169775190499
+64 3.30874725041482
+128 3.72279697831063
+256 3.9751485573276
+512 4.14477912020034
+1024 4.24833487034024
+2048 4.31881554572257
+4096 4.36645833475795
+8192 4.39779251324099
+16384 4.42159725176633
+32768 4.43671114130677
+};
+\addplot [thick, forestgreen4416044]
+table {%
+2 0.505684063133491
+4 0.981169979208857
+8 1.53882730039431
+16 2.19831462632879
+32 3.04547821069508
+64 3.72887696869635
+128 4.11467818619509
+256 4.28937769802199
+512 4.37716273880797
+1024 4.42892722747919
+2048 4.44906411342472
+4096 4.46118450209862
+8192 4.4657601348928
+16384 4.46916085236894
+32768 4.46994635241472
+};
+\addplot [thick, crimson2143940]
+table {%
+2 0.00393903842395208
+4 0.109937051085551
+8 0.569798083999359
+16 1.30047423104416
+32 2.11594875595411
+64 2.77246020896388
+128 3.29050123768944
+256 3.6378639482591
+512 3.87528550693893
+1024 4.04661020545609
+2048 4.17247472401085
+4096 4.27368559711077
+8192 4.32727964307877
+16384 4.37165213283431
+32768 4.39860986541606
+};
+
+\nextgroupplot[
+axis line style={lightgray204},
+log basis x={10},
+tick align=outside,
+tick pos=left,
+title={n = 40 vectors},
+x grid style={lightgray204},
+xlabel=\textcolor{darkslategray38}{\small Dimension of the vectors},
+xmajorgrids,
+xmode=log,
+xtick style={color=darkslategray38},
+xtick={0.1,1,10,100,1000,10000,100000,1000000},
+xticklabels={
+  \(\displaystyle 10^{-1}\),
+  \(\displaystyle 10^{0}\),
+  \(\displaystyle 10^{1}\),
+  \(\displaystyle 10^{2}\),
+  \(\displaystyle 10^{3}\),
+  \(\displaystyle 10^{4}\),
+  \(\displaystyle 10^{5}\),
+  \(\displaystyle 10^{6}\)
+},
+y grid style={lightgray204},
+ylabel=\textcolor{darkslategray38}{\small Average norm over 1000 runs},
+ymajorgrids,
+ymin=0, ymax=6.62205772715831,
+ytick style={color=darkslategray38},
+ytick={0,1,2,3,4,5,6,7},
+yticklabels={
+  \(\displaystyle 0\),
+  \(\displaystyle 1\),
+  \(\displaystyle 2\),
+  \(\displaystyle 3\),
+  \(\displaystyle 4\),
+  \(\displaystyle 5\),
+  \(\displaystyle 6\),
+  \(\displaystyle 7\)
+}
+]
+\addplot [thick, steelblue31119180]
+table {%
+2 0.681196935200777
+4 1.02331602941186
+8 1.50048374276611
+16 2.13669497348301
+32 2.99529459611384
+64 4.21840118311423
+128 5.24204007047894
+256 5.78768774836111
+512 6.05649525884327
+1024 6.19739062357707
+2048 6.25697138458372
+4096 6.29267545896853
+8192 6.30893067347843
+16384 6.31566462377519
+32768 6.3215614551962
+};
+\addplot [thick, darkorange25512714]
+table {%
+2 0.311636015953967
+4 0.746428727073949
+8 1.24041208876317
+16 1.89256103360284
+32 2.73027212107329
+64 3.78119886905691
+128 4.66604805923538
+256 5.24095159264286
+512 5.61912714590714
+1024 5.85308884366528
+2048 6.00255247797813
+4096 6.10475358565364
+8192 6.16941162428272
+16384 6.21824696580124
+32768 6.25136094487876
+};
+\addplot [thick, forestgreen4416044]
+table {%
+2 0.424328438938957
+4 0.88392833855234
+8 1.43140641460513
+16 2.15168094740902
+32 3.09830865259021
+64 4.34832152185881
+128 5.31615541019519
+256 5.81149882632076
+512 6.07006949102919
+1024 6.20458506347176
+2048 6.25928235090409
+4096 6.28991222769943
+8192 6.30859516455605
+16384 6.31646356667301
+32768 6.32039865853923
+};
+
+\nextgroupplot[
+axis line style={lightgray204},
+log basis x={10},
+tick align=outside,
+tick pos=left,
+title={n = 80 vectors},
+x grid style={lightgray204},
+xlabel=\textcolor{darkslategray38}{\small Dimension of the vectors},
+xmajorgrids,
+xmode=log,
+xtick style={color=darkslategray38},
+xtick={0.1,1,10,100,1000,10000,100000,1000000},
+xticklabels={
+  \(\displaystyle 10^{-1}\),
+  \(\displaystyle 10^{0}\),
+  \(\displaystyle 10^{1}\),
+  \(\displaystyle 10^{2}\),
+  \(\displaystyle 10^{3}\),
+  \(\displaystyle 10^{4}\),
+  \(\displaystyle 10^{5}\),
+  \(\displaystyle 10^{6}\)
+},
+y grid style={lightgray204},
+ylabel=\textcolor{darkslategray38}{\small Average norm over 1000 runs},
+ymajorgrids,
+ymin=0, ymax=9.36771223458797,
+ytick style={color=darkslategray38},
+ytick={-2,0,2,4,6,8,10},
+yticklabels={
+  \(\displaystyle -2\),
+  \(\displaystyle 0\),
+  \(\displaystyle 2\),
+  \(\displaystyle 4\),
+  \(\displaystyle 6\),
+  \(\displaystyle 8\),
+  \(\displaystyle 10\)
+}
+]
+\addplot [thick, steelblue31119180]
+table {%
+2 0.682560441338248
+4 1.02058332677713
+8 1.48543134450121
+16 2.11856267349735
+32 3.00799682260534
+64 4.21013328094934
+128 5.97787999942868
+256 7.44787624451523
+512 8.20813461974297
+1024 8.5814272225869
+2048 8.75865719767252
+4096 8.85601660831015
+8192 8.90277280902193
+16384 8.92157361949025
+32768 8.93298600827615
+};
+\addplot [thick, darkorange25512714]
+table {%
+2 0.255473495628926
+4 0.63470052589666
+8 1.18456489968387
+16 1.83245469691622
+32 2.68465359097678
+64 3.80632661375423
+128 5.31682284517839
+256 6.61226534802547
+512 7.42858407312511
+1024 7.92610067113487
+2048 8.26397595614149
+4096 8.48524976251333
+8192 8.62377323634267
+16384 8.72665680084041
+32768 8.78978628105754
+};
+\addplot [thick, forestgreen4416044]
+table {%
+2 0.351400487133177
+4 0.822513350119754
+8 1.40139254884093
+16 2.10901944736012
+32 3.0453773046088
+64 4.35020856439101
+128 6.14827380154868
+256 7.5290564970964
+512 8.2514444804057
+1024 8.58091150200917
+2048 8.76830674004311
+4096 8.85635452494313
+8192 8.89955280013852
+16384 8.9243933717195
+32768 8.93379610416135
+};
+
+\nextgroupplot[
+axis line style={lightgray204},
+log basis x={10},
+tick align=outside,
+tick pos=left,
+title={n = 160 vectors},
+x grid style={lightgray204},
+xlabel=\textcolor{darkslategray38}{\small Dimension of the vectors},
+xmajorgrids,
+xmode=log,
+xtick style={color=darkslategray38},
+xtick={0.1,1,10,100,1000,10000,100000,1000000},
+xticklabels={
+  \(\displaystyle 10^{-1}\),
+  \(\displaystyle 10^{0}\),
+  \(\displaystyle 10^{1}\),
+  \(\displaystyle 10^{2}\),
+  \(\displaystyle 10^{3}\),
+  \(\displaystyle 10^{4}\),
+  \(\displaystyle 10^{5}\),
+  \(\displaystyle 10^{6}\)
+},
+y grid style={lightgray204},
+ylabel=\textcolor{darkslategray38}{\small Average norm over 1000 runs},
+ymajorgrids,
+ymin=0, ymax=13.2395623315229,
+ytick style={color=darkslategray38},
+ytick={-2,0,2,4,6,8,10,12,14},
+yticklabels={
+  \(\displaystyle -2\),
+  \(\displaystyle 0\),
+  \(\displaystyle 2\),
+  \(\displaystyle 4\),
+  \(\displaystyle 6\),
+  \(\displaystyle 8\),
+  \(\displaystyle 10\),
+  \(\displaystyle 12\),
+  \(\displaystyle 14\)
+}
+]
+\addplot [thick, steelblue31119180]
+table {%
+2 0.696516279155739
+4 1.03689821459471
+8 1.48934258216306
+16 2.12355488482161
+32 2.97807725018156
+64 4.19593456987414
+128 5.91968135771982
+256 8.45107607225739
+512 10.5181239702459
+1024 11.6040629467132
+2048 12.1400291414353
+4096 12.3893507001965
+8192 12.521731341104
+16384 12.5870915701063
+32768 12.6176460225581
+};
+\addplot [thick, darkorange25512714]
+table {%
+2 0.191973851928742
+4 0.574258888893858
+8 1.09754993476092
+16 1.78825946761889
+32 2.64727257698244
+64 3.76278703351104
+128 5.3174675537711
+256 7.49863517836285
+512 9.3149454834613
+1024 10.4790633548458
+2048 11.2205646194551
+4096 11.6828098059336
+8192 11.9899441999949
+16384 12.1951771515809
+32768 12.3352557494731
+};
+\addplot [thick, forestgreen4416044]
+table {%
+2 0.278320632717034
+4 0.736967870128471
+8 1.32653608051394
+16 2.05223816907301
+32 3.01554689866902
+64 4.30249222059058
+128 6.13966527597225
+256 8.72380991859134
+512 10.6619094535035
+1024 11.6364289481388
+2048 12.1551014644949
+4096 12.3963539838949
+8192 12.5190368975744
+16384 12.5883332340206
+32768 12.6182485943994
+};
+\end{groupplot}
+
+\end{tikzpicture}

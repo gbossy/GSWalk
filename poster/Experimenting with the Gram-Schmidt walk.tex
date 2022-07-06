@@ -73,19 +73,19 @@ While this results gives the best known bounds for several well-known discrepanc
 %\gamma_m(S) = \mathbb{P}[\textbf{g} \in S]% = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}$
 %$ where $\textbf{g}$ is a standard Gaussian random vector in $\mathbb{R}^m$, i.e. $\textbf{g} \sim \mathcal{N}(0, I_m)$.}
 \subcolumn{0.2}
-\note[width=9cm,targetoffsetx=17.3cm,targetoffsety=6cm,innersep=0.4cm]{The Gaussian measure of a body is defined as $$
+\note[width=10cm,targetoffsetx=17.3cm,targetoffsety=6cm,innersep=0.4cm]{The Gaussian measure of a body is defined as $$
 \gamma_m(S) = \mathbb{P}[\textbf{g} \in S]% = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}
 $$ where $\textbf{g}$ is a standard Gaussian random vector in $\mathbb{R}^m$, i.e. $\textbf{g} \sim \mathcal{N}(0, I_m)$.}
 
 %\note[width=13cm,targetoffsetx=18cm,targetoffsety=5cm,innersep=0.4cm]{The Gaussian measure of a body is defined as $$\gamma_m(S) = \int_{\textbf{y} \in S} \frac{1}{(2 \pi)^{m/2}} e^{-||\textbf{y}||^2/2} d\textbf{y}.$$}
 
-\note[width=9cm,targetoffsetx=17.3cm,targetoffsety=-3.5cm,innersep=0.4cm]{A random vector $\textbf{Y} \in \mathbb{R}^m$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if for all $\bm{\theta} \in \mathbb{R}^m$:$$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^2\|\bm{\theta}\|_2^2/2}.$$}
+\note[width=10cm,targetoffsetx=17.3cm,targetoffsety=-3cm,innersep=0.4cm]{A random vector $\textbf{Y} \in \mathbb{R}^m$ is said to be subgaussian with parameter $\sigma$ (or $\sigma$-subgaussian) if for all $\bm{\theta} \in \mathbb{R}^m$:$$\mathbb{E}\left[e^{\langle\textbf{Y},\bm{\theta}\rangle}\right]\leq e^{\sigma^2\|\bm{\theta}\|_2^2/2}.$$}
 
 \end{subcolumns}
 
 \begin{subcolumns}
 \subcolumn{0.85}
-\block[bodyinnersep=0.4cm]{The Gram-Schmidt Walk}{
+\block[bodyinnersep=0.4cm]{The Gram-Schmidt Walk Algorithm}{
 %\section{General idea}
 %The idea of the algorithm is that it walks step by step in the hypercube of dimension $n$, $[-1,1]^n$. We start at some initial fractional coloring $\textbf{z}_0\in[-1,1]^n$. At each step, the coloring moves in the hypercube until at least one additional coordinate becomes 1 or -1, that is it moves to a facet of the hypercube it wasn't on yet. Once a coordinate is set to -1 or 1, it won't move for the rest of the algorithm, thus after step $i$ our fractional coloring is in the intersection of at least $i$ different facets. From all this, we can see that the algorithm reaches a non fractional coloring $\textbf{z}_t\in\{-1,1\}^n$ in at most $n$ steps.
 
@@ -135,7 +135,7 @@ This algorithm produces an assignment $\textbf{z}$ such that the corresponding v
 
 \note[width=2cm,targetoffsetx=14.7cm,targetoffsety=0.5cm,innersep=0.4cm,connection,radius=14cm, angle=55]{}
 
-\note[width=11cm,targetoffsetx=15.7cm,targetoffsety=3.2cm,innersep=0.4cm,connection,angle=-35,radius=13cm]{$(\textbf{z}_t)_{t\in\{1,\dots,n\}}$ is actually a martingale as $\mathbb{E}[\delta_t|\delta_t^+,\delta_t^-]=0$.}
+\note[width=12cm,targetoffsetx=15.7cm,targetoffsety=3.2cm,innersep=0.4cm,connection,angle=-35,radius=14cm]{$(\textbf{z}_t)_{t\in\{1,\dots,n\}}$ is actually a martingale as $\mathbb{E}[\delta_t|\delta_t^+,\delta_t^-]=0$.}
 
 \note[width=13cm,targetoffsetx=15.2cm,targetoffsety=6.2cm,innersep=0.4cm,connection, angle =-10, radius=12cm]{If $V_t=\Span\{\textbf{v}_i:i\in A_t\setminus\{p(t)\}\}$, $\textbf{u}_t$ can be chosen as a solution of $\Pi_{V_t}(\textbf{v}_{p(t)}) + \sum_{i \in A_t\setminus\{p(t)\}} \textbf{u}_t(i)\textbf{v}_i=\textbf{0}$, $\textbf{u}_t\in U$ where $\Pi_{V_t}$ is the projector on $V_t$.}
 
@@ -147,19 +147,19 @@ This algorithm produces an assignment $\textbf{z}$ such that the corresponding v
 
 \end{subcolumns}
 \block[bodyinnersep=0.4cm]{Changing the Pivot Rule}{
-In the pseudocode given above, the pivot $p(t)$ is chosen through the order of the input vector. It could also be chosen randomly, as that would be equivalent to shuffling the input vectors which do not have a specific order. One area of potential improvement for this algorithm is to add rules for the choice of the pivot. For example, it could depend on the norm of the vectors in $A_t$, on  how much they would move the vector of imbalances in expectation, or on the fractional coloring. One promising variant that seems to improve the algorithm regarding the minimization of the vector of imbalances is to choose the pivot as $p(t)=\arg\max_{i\in A_t}|x(i)|$. This rule, called \textbf{maximum absolute coloring} (\textbf{MAC}) changes the behavior of the algorithm as can be seen in figures \ref{max_col_comp} and \ref{max_col_norms}.
+In the pseudocode given above, the pivot $p(t)$ is chosen through the order of the input vector. It could also be chosen randomly, as that would be equivalent to shuffling the input vectors which do not have a specific order. One area of potential improvement for this algorithm is to add rules for the choice of the pivot. For example, it could depend on the norm of the vectors in $A_t$, on  how much they would move the vector of imbalances in expectation, or on the fractional coloring. One promising variant that seems to improve the algorithm regarding the minimization of the vector of imbalances is to choose the pivot as $p(t)=\arg\max_{i\in A_t}|x(i)|$. This rule, called \textbf{maximum absolute coloring} (\textbf{MAC}) changes the behavior of the algorithm as can be seen in figures \ref{max_col_comp} and \ref{max_col_norms}. The assignments produced using this rule result in notably shorter vector of imbalances, especially when coupled with the DGSW. In my thesis, we explore several other potential modifications of the algorithm.
 }
 
 \block[bodyinnersep=0.4cm]{Plot of Average Norm of Vectors of Imbalances}{
-\begin{tikzfigure}[Plot of average norm of vectors of imbalances for the GSW, the GSW with MAC and the DGSW with MAC, each obtained from an input of $n$ vectors sampled uniformly from the ball of radius 1 in $\mathbb{R}^d$ with random pivot rule and maximum absolute coloring pivot rule. For small $n$'s, there is also a plot of the average norm of shortest vectors of imbalances obtained by brute force\par\vspace{-1ex}]
+\begin{tikzfigure}[Plot of average norm of vectors of imbalances for the GSW, the GSW with MAC and the DGSW with MAC, each obtained from an input of $n$ vectors sampled uniformly from the ball of radius 1 in $\mathbb{R}^d$ with random pivot rule and maximum absolute coloring pivot rule. For small $n$'s, there is also a plot of the average norm of shortest vectors of imbalances obtained by brute force, named as \textbf{Lowest Norm Assignment} (\textbf{LDA}). Results are averaged for 1000 runs except for the LDA with $n=20$ where they're averaged over 20 runs as the running time is too long to do more of them.\par\vspace{-1ex}]
 \vspace{-1ex}\hspace{-3ex}
-%\input{}
+\input{comparative_norms_n=160_repeat=20_max_dim=32768.0_max_col}
 \label{max_col_norms}
 \vspace{-1ex}
 \end{tikzfigure}}
 
 \column{0.4}
-\block[bodyinnersep=0.4cm]{A Gram-Schmidt Walk Run}{
+\block[bodyinnersep=0.4cm]{A Complete Example for $n=3, d=2$}{
 \begin{tikzfigure}[Example of a GSW run with 3 vectors in $\mathbb{R}^2$. The left part shows the cube where the coloring is living, and the right part shows the vector of imbalances and the input vectors.\par\vspace{-1ex}]
 \vspace{-1ex}\hspace{-3ex}
 \multido{\i=0+1}{3}{
@@ -177,8 +177,14 @@ In the pseudocode given above, the pivot $p(t)$ is chosen through the order of t
 %100 points for each variant on the graph.
 
 \block[bodyinnersep=0.4cm]{Going Further}{
-There are various areas where this algorithm could be improved The choice of the direction could be changed slightly to adapt it to some problematic inputs that exist for $n>d$. The pivot choice could be done in many ways to improve some aspects. The input vectors could be modified to add additional known information or constraints about the assignment. The modification discussed in my thesis, that minimizes balance in a certain way, could certainly be better understood. The algorithm could be generalized to separate inputs into more than 2 groups in a single run. All these aspects and several more could be extremely interesting to study more in details.
-
+There are various areas where this algorithm could be improved and better understood:
+\begin{itemize}
+\item The choice of the direction could be changed slightly to adapt it to some problematic inputs that exist for $n>d$. 
+\item The pivot choice could be done in many ways to improve some aspects. 
+\item The input vectors could be modified to add additional known information or constraints about the assignment.
+\item The modification discussed in my thesis, that minimizes balance in a certain way, could certainly be better understood. 
+\item The algorithm could be generalized to separate inputs into more than 2 groups in a single run.
+\end{itemize}
 Additionally, it would also be interesting to explore further the use of the algorithm to solve problems regarding hidden substructures in large sets, such as the planted clique, or the potential usages of a vector balancing algorithm in machine learning.
 }
 
