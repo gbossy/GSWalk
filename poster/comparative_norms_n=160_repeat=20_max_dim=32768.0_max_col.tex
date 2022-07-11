@@ -8,7 +8,7 @@
 \definecolor{lightgray204}{RGB}{204,204,204}
 \definecolor{steelblue31119180}{RGB}{31,119,180}
 
-\begin{groupplot}[group style={group size=3 by 2, vertical sep=140pt, horizontal sep=90 pt,ylabels at=edge left},width=14cm,height=14cm,xmin=2, xmax=32768]
+\begin{groupplot}[group style={group size=3 by 2, vertical sep=130pt, horizontal sep=90 pt,ylabels at=edge left},width=14cm,height=12cm,xmin=2, xmax=32768]
 \nextgroupplot[
 axis line style={lightgray204},
 legend cell align={left},
@@ -16,7 +16,7 @@ legend style={
   fill opacity=0.8,
   draw opacity=1,
   text opacity=1,
-  at={(3.5,0.05)},
+  at={(3.6,0.05)},
   anchor=south east,
   draw=none
 },
@@ -53,7 +53,7 @@ yticklabels={
   \(\displaystyle 2\),
 }
 ]
-\addplot [thick, steelblue31119180]
+\addplot [ultra thick, steelblue31119180]
 table {%
 2 0.725885247935057
 4 1.06804241875013
@@ -72,7 +72,7 @@ table {%
 32768 2.23606837435418
 };
 \addlegendentry{GSW}
-\addplot [thick, darkorange25512714]
+\addplot [ultra thick, darkorange25512714]
 table {%
 2 0.652410710514138
 4 0.93998864267492
@@ -90,8 +90,8 @@ table {%
 16384 2.225816873593
 32768 2.22928673619057
 };
-\addlegendentry{MC DGSW}
-\addplot [thick, forestgreen4416044]
+\addlegendentry{MAC DGSW}
+\addplot [ultra thick, forestgreen4416044]
 table {%
 2 0.727627960594836
 4 1.08845812674368
@@ -109,8 +109,8 @@ table {%
 16384 2.23546501095428
 32768 2.23573994455621
 };
-\addlegendentry{MC GSW}
-\addplot [thick, crimson2143940]
+\addlegendentry{MAC GSW}
+\addplot [ultra thick, crimson2143940]
 table {%
 2 0.349995259957233
 4 0.745586905456825
@@ -128,7 +128,7 @@ table {%
 16384 2.21612086336389
 32768 2.2221087026373
 };
-\addlegendentry{LDA}
+\addlegendentry{LNA}
 
 \nextgroupplot[
 axis line style={lightgray204},
@@ -165,7 +165,7 @@ yticklabels={
   \(\displaystyle 3\),
 }
 ]
-\addplot [thick, steelblue31119180]
+\addplot [ultra thick, steelblue31119180]
 table {%
 2 0.730387977140844
 4 1.07454562271808
@@ -183,7 +183,7 @@ table {%
 16384 3.16111714253532
 32768 3.16152483513855
 };
-\addplot [thick, darkorange25512714]
+\addplot [ultra thick, darkorange25512714]
 table {%
 2 0.525336091041823
 4 0.926648372109926
@@ -201,7 +201,7 @@ table {%
 16384 3.13851859153112
 32768 3.14659991948233
 };
-\addplot [thick, forestgreen4416044]
+\addplot [ultra thick, forestgreen4416044]
 table {%
 2 0.628522904871021
 4 1.07822237844356
@@ -219,7 +219,7 @@ table {%
 16384 3.16056889814354
 32768 3.16184795503664
 };
-\addplot [thick, crimson2143940]
+\addplot [ultra thick, crimson2143940]
 table {%
 2 0.092547033627458
 4 0.434918785181621
@@ -276,7 +276,7 @@ yticklabels={
   \(\displaystyle 5\)
 }
 ]
-\addplot [thick, steelblue31119180]
+\addplot [ultra thick, steelblue31119180]
 table {%
 2 0.689589933182214
 4 1.03181565787087
@@ -294,7 +294,7 @@ table {%
 16384 4.46829228689566
 32768 4.47125424913743
 };
-\addplot [thick, darkorange25512714]
+\addplot [ultra thick, darkorange25512714]
 table {%
 2 0.422850223851041
 4 0.815748243114603
@@ -312,7 +312,7 @@ table {%
 16384 4.42159725176633
 32768 4.43671114130677
 };
-\addplot [thick, forestgreen4416044]
+\addplot [ultra thick, forestgreen4416044]
 table {%
 2 0.505684063133491
 4 0.981169979208857
@@ -330,7 +330,7 @@ table {%
 16384 4.46916085236894
 32768 4.46994635241472
 };
-\addplot [thick, crimson2143940]
+\addplot [ultra thick, crimson2143940]
 table {%
 2 0.00393903842395208
 4 0.109937051085551
@@ -388,7 +388,7 @@ yticklabels={
   \(\displaystyle 7\)
 }
 ]
-\addplot [thick, steelblue31119180]
+\addplot [ultra thick, steelblue31119180]
 table {%
 2 0.681196935200777
 4 1.02331602941186
@@ -406,7 +406,7 @@ table {%
 16384 6.31566462377519
 32768 6.3215614551962
 };
-\addplot [thick, darkorange25512714]
+\addplot [ultra thick, darkorange25512714]
 table {%
 2 0.311636015953967
 4 0.746428727073949
@@ -424,7 +424,7 @@ table {%
 16384 6.21824696580124
 32768 6.25136094487876
 };
-\addplot [thick, forestgreen4416044]
+\addplot [ultra thick, forestgreen4416044]
 table {%
 2 0.424328438938957
 4 0.88392833855234
@@ -481,7 +481,7 @@ yticklabels={
   \(\displaystyle 10\)
 }
 ]
-\addplot [thick, steelblue31119180]
+\addplot [ultra thick, steelblue31119180]
 table {%
 2 0.682560441338248
 4 1.02058332677713
@@ -499,7 +499,7 @@ table {%
 16384 8.92157361949025
 32768 8.93298600827615
 };
-\addplot [thick, darkorange25512714]
+\addplot [ultra thick, darkorange25512714]
 table {%
 2 0.255473495628926
 4 0.63470052589666
@@ -517,7 +517,7 @@ table {%
 16384 8.72665680084041
 32768 8.78978628105754
 };
-\addplot [thick, forestgreen4416044]
+\addplot [ultra thick, forestgreen4416044]
 table {%
 2 0.351400487133177
 4 0.822513350119754
@@ -576,7 +576,7 @@ yticklabels={
   \(\displaystyle 14\)
 }
 ]
-\addplot [thick, steelblue31119180]
+\addplot [ultra thick, steelblue31119180]
 table {%
 2 0.696516279155739
 4 1.03689821459471
@@ -594,7 +594,7 @@ table {%
 16384 12.5870915701063
 32768 12.6176460225581
 };
-\addplot [thick, darkorange25512714]
+\addplot [ultra thick, darkorange25512714]
 table {%
 2 0.191973851928742
 4 0.574258888893858
@@ -612,7 +612,7 @@ table {%
 16384 12.1951771515809
 32768 12.3352557494731
 };
-\addplot [thick, forestgreen4416044]
+\addplot [ultra thick, forestgreen4416044]
 table {%
 2 0.278320632717034
 4 0.736967870128471

@@ -611,19 +611,21 @@ def plot_situation(v,p,x,u,deltas,i,alive):
     if i!=0:
         ax1.text(np.matmul(B,x)[0],np.matmul(B,x)[1],f'${B_form}{z_form}_{i}$', size=20, zorder=1, color='k')
     else:
-        ax1.text(np.matmul(B,x)[0],np.matmul(B,x)[1],f'${B_form}{z_form}_{i}={B_form}({z_form}_{i}+\delta^-_{i+1}{u_form}_t)={B_form}({z_form}_{i}+\delta^+_{i+1}{u_form}_t)$', size=20, zorder=1, color='k')
+        ax1.text(np.matmul(B,x)[0]-0.3,np.matmul(B,x)[1],f'${B_form}{z_form}_{i}={B_form}({z_form}_{i}+\delta^-_{i+1}{u_form}_{i+1})={B_form}({z_form}_{i}+\delta^+_{i+1}{u_form}_{i+1})$', size=20, zorder=1, color='k')
     deltas.sort()
     x_1=x+deltas[0]*u
     x_2=x+deltas[1]*u
     xs=[x_1,x_2]
     ax1.plot([np.matmul(B,x)[0] for x in xs],[np.matmul(B,x)[1] for x in xs],'<',label='Potential update')
+    ax1.plot([np.matmul(B,x)[0] for x in xs],[np.matmul(B,x)[1] for x in xs],'--',label='Potential update')
+
     np.matmul(B,xs[0])[0],np.matmul(B,xs[0])[1]
     if i!=0:
-        ax1.text(np.matmul(B,xs[0])[0],np.matmul(B,xs[0])[1],f'${B_form}({z_form}_{i}+\delta^-_{i+1}{u_form}_t)$', size=20, zorder=1, color='k')
-        ax1.text(np.matmul(B,xs[1])[0],np.matmul(B,xs[1])[1],f'${B_form}({z_form}_{i}+\delta^+_{i+1}{u_form}_t)$', size=20, zorder=1, color='k')
+        ax1.text(np.matmul(B,xs[0])[0]-0.1,np.matmul(B,xs[0])[1],f'${B_form}({z_form}_{i}+\delta^-_{i+1}{u_form}_{i+1})$', size=20, zorder=1, color='k')
+        ax1.text(np.matmul(B,xs[1])[0]-0.1,np.matmul(B,xs[1])[1],f'${B_form}({z_form}_{i}+\delta^+_{i+1}{u_form}_{i+1})$', size=20, zorder=1, color='k')
     alive=[j+1 for j in range(len(alive)) if alive[j]]
     alive_formatted=str(alive).replace('[','\{').replace(']','\}')
-    plt.figtext(0.3,0.04, f"$t={i+1},\quad A_{i+1}={alive_formatted},\quad p({i+1})={1+p},\quad\delta^-_t ={np.round(np.array(deltas[0]),3)},\quad \delta^+_t={np.round(np.array(deltas[1]),3)}$",size=20)
+    plt.figtext(0.3,0.04, f"$t={i+1},\quad A_{i+1}={alive_formatted},\quad p({i+1})={1+p},\quad\delta^-_{i+1} ={np.round(np.array(deltas[0]),3)},\quad \delta^+_{i+1}={np.round(np.array(deltas[1]),3)}$",size=20)
     ax1.xaxis.set_major_locator(plt.MaxNLocator(5))
     ax1.yaxis.set_major_locator(plt.MaxNLocator(5))
     if x.shape[0]==3:
@@ -651,10 +653,14 @@ def plot_situation(v,p,x,u,deltas,i,alive):
         ax.plot_surface(x_,y,z+1, alpha=0.15, color='blue')   # plot the plane z=1
         ax.plot_surface(x_,y,z-1, alpha=0.15, color='blue')   # plot the plane z=-1
         ax.scatter(x[0],x[1],x[2],label='Current coloring')
-        ax.text(x[0],x[1],x[2],f'${z_form}_{i}$', size=20, zorder=1, color='k') 
+        zero=r'\bf{0}'
+        if i==0:
+            ax.text(x[0],x[1],x[2],f'${z_form}_{i}={zero}$', size=20, zorder=1, color='k')
+        else:
+            ax.text(x[0],x[1],x[2],f'${z_form}_{i}$', size=20, zorder=1, color='k')
         ax.scatter([x_1[0],x_2[0]], [x_1[1],x_2[1]],zs=[x_1[2],x_2[2]],label='Potential update')
-        ax.text(x_1[0],x_1[1],x_1[2],f'${z_form}_{i}+\delta^-_{i+1}{u_form}_t$', size=20, zorder=1, color='k') 
-        ax.text(x_2[0],x_2[1],x_2[2],f'${z_form}_{i}+\delta^+_{i+1}{u_form}_t$', size=20, zorder=1, color='k') 
+        ax.text(x_1[0],x_1[1],x_1[2],f'${z_form}_{i}+\delta^-_{i+1}{u_form}_{i+1}$', size=20, zorder=1, color='k') 
+        ax.text(x_2[0],x_2[1],x_2[2],f'${z_form}_{i}+\delta^+_{i+1}{u_form}_{i+1}$', size=20, zorder=1, color='k') 
         ax.plot([x_1[0],x_2[0]], [x_1[1],x_2[1]],zs=[x_1[2],x_2[2]],label='Update direction')
 
         # Set limits of the 3D display

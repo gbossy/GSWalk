@@ -1,6 +1,6 @@
 This repository contains my thesis on the Gram-Schmidt Walk and most of the code used to run experiments and produce figures within. 
 
-What most people could find most interesting is my thesis report, which is the .pdf file in the report folder, and the GSW implementation in gsw.py. 
+What most people could find most interesting is my thesis report, which is the .pdf file in the report folder, and the GSW implementation in notebooks/gsw.py. 
 
 Note that some modes and configurations will not work when combined and warnings may not have been implemented in the code.
 
