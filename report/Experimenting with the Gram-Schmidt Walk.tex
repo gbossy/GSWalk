@@ -56,7 +56,7 @@
 
 
 \DeclareMathAlphabet{\mymathbb}{U}{BOONDOX-ds}{m}{n}
-\usepackage[linesnumbered,boxruled]{algorithm2e}%ruled in 1st param
+\usepackage[linesnumbered,boxruled,vlined]{algorithm2e}%ruled in 1st param
 \pgfplotsset{compat=1.15}
 \usepackage{mathrsfs}
 \usetikzlibrary{arrows}
@@ -113,16 +113,19 @@ Subgaussianity is discussed more in details in section \ref{results}.
 
 Here is their result:
 \begin{theorem}[\cite{construct}]\label{equivalence}
-Banaszczyk's Theorem (up to the constant) is equivalent to the following statement:\\
-Let $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^d$ of $\ell_2$ norm at most 1, with $\textbf{B}= (\textbf{v}_1, \dots, \textbf{v}_n) \in \mathbb{R}^{d \times n}$ and $K \subseteq \mathbb{R}^d$ a convex body  of Gaussian measure at least 1/2.
-Then, there exists $\textbf{z}_0 \in [-1,1]^n$ and there exists a distribution $D$ on $\{-1,1\}^n$, such that: 
-\begin{enumerate}
-    \item  $\textbf{B}\textbf{z}_0 = \sum_{i=1}^n \textbf{z}_0(i)\textbf{v}_i \in K$\\
-    \item  for $\textbf{z} \sim D$, $\textbf{B}(\textbf{z}-\textbf{z}_0)= \sum_{i=1}^n (\textbf{z}(i)-\textbf{z}_0(i))\textbf{v}_i$ is $\sigma$-subgaussian, for some $\sigma >0$ and if $\textbf{z}_0(i) \in \{-1, 1\}$, $\mathbb{P}[\textbf{z}(i)=\textbf{z}_0(i)]=1, \forall i$.
-    \item $\mathbb{P}_{\textbf{z} \sim D}[\sum_{i=1}^n (\textbf{z}(i)- \textbf{z}_0(i))\textbf{v}_i \in c(\sigma)K] \geq 1/2$ for some $c(\sigma)$.
-\end{enumerate}
-\end{theorem}
-In this last theorem, one can just pick $\textbf{z}_0=\textbf{0}$ because the gaussian measure bound forces it to be inside $K$, but finding the subgaussian distribution is far from trivial. The proof uses the minimax theorem from Von Neumann \cite{neumann1928theorie}, turning the choice of the distribution in a game, and a result from Talagrand \cite{talagrand2005generic} on the norm of subgaussian vectors. In addition to all that, there is a complicated recentering procedure to show that the result still holds for non-symmetric bodies.
+        Let $\textbf{v}_1, \dots, \textbf{v}_n \in \mathbb{R}^d$ of $\ell_2$ norm at most 1, with $\textbf{B}= (\textbf{v}_1, \dots, \textbf{v}_n) \in \mathbb{R}^{d \times n}$ and $K \subseteq \mathbb{R}^d$ a convex body  of Gaussian measure at least 1/2.
+        Then, there exists $\textbf{z}_0 \in [-1,1]^n$ and there exists a distribution $D$ on $\{-1,1\}^n$, such that: 
+        \begin{enumerate}
+            \item  $\textbf{B}\textbf{z}_0 %= \sum_{i=1}^n \textbf{z}_0(i)\textbf{v}_i
+            \in K$\\
+            \item  For $\textbf{z} \sim D$, $\textbf{B}(\textbf{z}-\textbf{z}_0)%= \sum_{i=1}^n (\textbf{z}(i)-\textbf{z}_0(i))\textbf{v}_i
+¨	 $ is $\sigma$-subgaussian, for some $\sigma >0$
+            \item For any $i\in[n]$, if $\textbf{z}_0(i) \in \{-1, 1\}$, $\mathbb{P}[\textbf{z}(i)=\textbf{z}_0(i)]=1$.
+            \item $\mathbb{P}_{\textbf{z} \sim D}[%\sum_{i=1}^n% (\textbf{z}(i)%- \textbf{z}_0(i))\textbf{v}_i 
+            \textbf{Bz}\in c(\sigma)K] \geq 1/2$ for some $c(\sigma)$.
+        \end{enumerate}
+    \end{theorem}
+In this last theorem, when $K$ is symmetric ($K=-K$), one can just pick $\textbf{z}_0=\textbf{0}$ because the gaussian measure bound forces it to be inside $K$, but finding the subgaussian distribution is far from trivial. The proof uses the minimax theorem from Von Neumann \cite{neumann1928theorie}, turning the choice of the distribution in a game, and a result from Talagrand \cite{talagrand2005generic} on the norm of subgaussian vectors. In addition to all that, there is a complicated recentering procedure to show that the result still holds for non-symmetric bodies.
 
 A couple years later, a team including three of the previous authors, Dadush, Garg and Lovett, joined by Bansal this time, actually found and analysed an algorithm to successfully sample colorings that allows us to construct the colorings described by Banaszczyk in his work from 1998. They call this algorithm the Gram-Schmidt walk, as it uses a procedure that can remind of the Gram-Schmidt orthogonalization process. They proved that the vector of imbalances produced by the assignments of the Gram-Schmidt Walk are subgaussian with constant $\sigma^2=40$.
 
@@ -149,7 +152,7 @@ There are a few notations that will appear several times in this document:
 \subsection{General idea}
 The idea of the algorithm is that it walks step by step in the hypercube of dimension $n$, $[-1,1]^n$. We start at some initial fractional coloring $\textbf{z}_0\in[-1,1]^n$. At each step, the coloring moves in the hypercube until at least one additional coordinate becomes 1 or -1, that is it moves to a facet of the hypercube it wasn't on yet. Once a coordinate is set to -1 or 1, it won't move for the rest of the algorithm, thus after step $i$ our fractional coloring is in the intersection of at least $i$ different facets. From all this, we can see that the algorithm reaches a non fractional coloring $\textbf{z}_t\in\{-1,1\}^n$ in at most $n$ steps.
 
-The question now becomes "how to choose the facet to move to ?". To do so, the algorithm finds an update direction $\textbf{u}_t\in\mathbb{R}^n$ such that $\sum_{i=1}^n\textbf{u}_t(i)\textbf{v}_i$ is small, and updates $\textbf{z}_t$ into $\textbf{z}_{t+1}=\textbf{z}_t+\delta_t\textbf{u}_t$. $\delta_t\in\mathbb{R}$ is chosen so that $\textbf{z}_{t+1}\in[-1,1]^n$ and at least one additional coordinate now has absolute value 1. Moreover, $\delta_t$ is chosen randomly among the two potential candidates that fulfill the previously mentioned condition, and the distribution between the two candidates is engineered so that its expectation is 0 and no direction is favored. Thus before the algorithm starts, ending at $\textbf{z}_t\in\{-1,1\}^n$ or at $-\textbf{z}_t\in\{-1,1\}^n$ is equally likely.
+The question now becomes "how to choose the facet to move to ?". To do so, the algorithm finds an update direction $\textbf{u}_t\in\mathbb{R}^n$ such that $\sum_{i=1}^n\textbf{u}_t(i)\textbf{v}_i$ is small, and updates $\textbf{z}_t$ into $\textbf{z}_{t+1}=\textbf{z}_t+\delta_t\textbf{u}_t$. $\delta_t\in\mathbb{R}$ is chosen so that $\textbf{z}_{t+1}\in[-1,1]^n$ and at least one additional coordinate now has absolute value 1. Moreover, $\delta_t$ is chosen randomly among the two potential candidates that fulfill the previously mentioned condition, and the distribution between the two candidates is engineered so that its expectation is 0 and no direction is favored. Thus before the algorithm starts at $\textbf{z}_0=\textbf{0}$, ending at $\textbf{z}_t\in\{-1,1\}^n$ or at $-\textbf{z}_t\in\{-1,1\}^n$ is equally likely.
 
 \subsection{Pseudocode}
 The algorithm takes as input $\textbf{v}_1,\ldots,\textbf{v}_n\in\mathbb{R}^d$, and an initial coloring $\textbf{z}_0\in[-1,1]^n$. A run of the algorithm consists of at most $n$ time steps. At the end of each time step $t$, the algorithm obtains a fractional coloring $\textbf{z}_t\in[-1,1]^n$. An element $i \in [n]$ is said to be \textit{alive} at time $t$ if $|\textbf{z}_{t-1}(i)|<1$, and \textit{fixed} otherwise. Let $A_t=\{i\in[n]:|\textbf{z}_{t-1}(i)|<1\}$. The \textit{pivot} $p(t)$ is an element that is alive at time $t$, which can for example be chosen randomly or as the largest indexed element, among the elements that are still alive. We define the set $V_t$ as $\Span\{\textbf{v}_i:i\in A_t,i\not=p(t)\}$. We denote by $\Pi_{V_t^\perp}$ the projection operator on $V_t^\perp$. Finally, we need $\textbf{v}^{\perp}(t)=\Pi_{V_t^\perp}(\textbf{v}_{p(t)})$ as the projection of the pivot vector over all alive vectors. We are now ready to discover the actual pseudocode of the algorithm.
@@ -256,7 +259,7 @@ Another really different variant which we will compare a bit with the GSW in thi
     Output $\textbf{a}\in\{-1,1\}^n$.
     }%
     \end{algorithm}
-This simple algorithm that we call the naive walk can have a random component through a pre-input shuffling of the vectors, similarly to the DGSW. It doesn' actually compare badly to the GSW in term of norm of the resulting vectors of imbalances, as can be seen via the experiment in section \ref{how_good_at_minimizing_disc}. 
+This simple algorithm that we call the naive walk can have a random component through a pre-input shuffling of the vectors, similarly to the DGSW. It doesn't actually compare badly to the GSW in term of norm of the resulting vectors of imbalances, as can be seen via the experiment in section \ref{how_good_at_minimizing_disc}. 
 
 Another way to do it would be to choose the sign according to a distribution that is inversely proportional to the norm of the potential updated $\textbf{s}$ vector, or to greedily try every assignment of every vector at each step and add the assignment that results in the smallest norm, or do a distribution based on how big the norm would be if an assignment was added. In the end, I wanted to compare with a simple algorithm and chose this one.
 
@@ -346,20 +349,19 @@ Here are the rank one updates that let us compute our matrices for some $S'=S\se
 \begin{lemma}\label{update_lemma}
 For $k\in S$, let 
 \begin{itemize}
-\item $\textbf{c}_k\in\mathbb{R}^{n}$ be the $k$th row of $\textbf{C}_S$
-\item $\textbf{d}_k\in\mathbb{R}^{d}$ be the $k$th row of $\textbf{D}_S$
+\item $\textbf{c}_k\in\mathbb{R}^{d}$ be the $k$th row of $\textbf{C}_S$
+\item $\textbf{d}_k\in\mathbb{R}^{n}$ be the $k$th row of $\textbf{D}_S$
 \item $S'= S\setminus\{k\}$
 \end{itemize}
 Then $\textbf{C}_{S'}=\textbf{C}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T$ and $\textbf{D}_{S'}=\textbf{D}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{d}_k^T$.
 \end{lemma}
 \begin{proof}
 For the first part, we have that\begin{align*}
-\left(\textbf{C}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T\right)\textbf{B}_{S'}&=\left(\textbf{C}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T\right)\textbf{B}_{S}\textbf{I}_{S'}\\
-&=\textbf{C}_S\textbf{B}_S\textbf{I}_{S'}-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T\textbf{B}_{S}\textbf{I}_{S'}\\
-&=\textbf{I}_{S'}-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{e}_k^T\textbf{I}_{S'}\\
-&=\textbf{I}_{S'}-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{0}\\
+\textbf{C}_{S'}\textbf{B}_{S'}&=\left(\textbf{C}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T\right)\textbf{B}_{S'}\\
+&=\textbf{C}_S\textbf{B}_S\textbf{I}_{S'}-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T\textbf{B}_{S'}\\
+&=\textbf{I}_{S'}-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{0}^T\\
 &=\textbf{I}_{S'}\end{align*}
-Thus we just need to show that the rows of $\textbf{C}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T$ not in $S'$ are \textbf{0}. As $\frac{1}{\textbf{d}_k(k)}\textbf{d}_k(k)=1$, we have that the $k$th row of $\textbf{C}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T$ is indeed \textbf{0}. Lastly, as $\textbf{D}_S=\textbf{C}_S\textbf{C}_S^T$, we have that $i\not\in S\Rightarrow \textbf{d}_k(i)=0$ thus all the rows whose indices aren't in $S$ indeed do stay \textbf{0}.
+Thus we just need to show that the rows of $\textbf{C}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T$ not in $S'$ are \textbf{0}. As $\frac{1}{\textbf{d}_k(k)}\textbf{d}_k(k)=1$, we have that the $k$th row of $\textbf{C}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T$ is indeed $\textbf{c}_k-\frac{\textbf{d}_k(k)}{\textbf{d}_k(k)}\textbf{c}_k=\textbf{0}$. Lastly, as $\textbf{d}_k=\textbf{c}_k\textbf{C}_S^T$, $i\not\in S\Rightarrow \textbf{d}_k(i)=0$ we can conclude.
 
 For the second part, we can see that \begin{align*}
 \textbf{D}_{S'}&=\textbf{C}_{S'}\textbf{C}_{S'}^T\\
@@ -368,9 +370,10 @@ For the second part, we can see that \begin{align*}
 &=\textbf{C}_S\textbf{C}_S^T-\frac{1}{\textbf{d}_k(k)}\textbf{C}_S\textbf{c}_k\textbf{d}_k^T-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{c}_k^T\textbf{C}_S^T+\frac{1}{\textbf{d}_k(k)^2}\textbf{d}_k\textbf{c}_k^T\textbf{c}_k\textbf{d}_k^T\\
 &=\textbf{D}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{d}_k^T-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{d}_k^T+\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{d}_k^T\\
 &=\textbf{D}_S-\frac{1}{\textbf{d}_k(k)}\textbf{d}_k\textbf{d}_k^T\end{align*}\end{proof}
+
 Now let's see why this is useful, that is, how to compute $\textbf{v}^\perp(t)$ and $\textbf{u}_t$ from these matrices.
 \begin{lemma}
-Assume we're currently in a step of the GSW where the active vectors are $A_t=\{\textbf{v}_s:s\in S\}$, and $\textbf{v}_k\in A_t$ is the pivot. If $\textbf{d}_k$ and $\textbf{c}_k$ are defined similarly as in Lemma \ref{update_lemma}, we have that $$\textbf{v}^\perp(t)=\frac{\textbf{c}_k}{\|\textbf{c}_k\|^2}\textrm{ and }\textbf{u}_t=\frac{\textbf{d}_k}{\textbf{d}_k(k)}.$$
+Assume we're currently in a step of the GSW where the active vectors are $A_t=\{\textbf{v}_s:s\in S\}$, and $\textbf{v}_k\in A_t$ is the pivot. If $\textbf{c}_k$ and $\textbf{d}_k$ are defined similarly as in Lemma \ref{update_lemma}, we have that $$\textbf{v}^\perp(t)=\frac{\textbf{c}_k}{\|\textbf{c}_k\|^2}\textrm{ and }\textbf{u}_t=\frac{\textbf{d}_k}{\textbf{d}_k(k)}.$$
 \end{lemma}
 \begin{proof}
 Let $S'=S\setminus \{k\}$. Starting from the definition of $\textbf{v}^\perp(t)$ with pivot $p(t)=k$, we have that \begin{equation*}\begin{WithArrows}
@@ -385,10 +388,10 @@ Let $S'=S\setminus \{k\}$. Starting from the definition of $\textbf{v}^\perp(t)$
 &=\textbf{v}_k+\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S'}\textbf{C}_S\textbf{c}_k\Arrow{Definition of $\textbf{B}_{S'}$} \\
 &=\textbf{v}_k+\frac{1}{\textbf{d}_k(k)}\left(\textbf{B}_{S}-\textbf{v}_k\textbf{e}_k^T\right)\textbf{C}_S\textbf{c}_k\\
 &=\textbf{v}_k+\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S}\textbf{C}_S\textbf{c}_k^T-\frac{1}{\textbf{d}_k(k)}\textbf{v}_k\textbf{c}_k^T\textbf{c}_k\Arrow{$\textbf{D}_S=\textbf{C}_S\textbf{C}_S^T$}\\
-&=\textbf{v}_k+\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S}\textbf{C}_S\textbf{c}_k^T-\frac{\textbf{d}_k(k)}{\textbf{d}_k(k)}\textbf{v}_k\\
-&=\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S}\textbf{C}_S\textbf{c}_k^T\Arrow{Pseudo-inverse definition}\\
-&=\frac{1}{\textbf{d}_k(k)}(\textbf{B}_{S}\textbf{C}_S)^T\textbf{c}_k^T\Arrow{$(AB)^T=B^TA^T$}\\
-&=\frac{1}{\textbf{d}_k(k)}\textbf{C}_S^T\textbf{B}_{S}^T\textbf{c}_k^T\Arrow{Pseudo-inverse definition}\\
+&=\textbf{v}_k+\frac{1}{\textbf{d}_k(k)}\textbf{B}_{S}\textbf{C}_S\textbf{c}_k^T-\frac{\textbf{d}_k(k)}{\textbf{d}_k(k)}\textbf{v}_k\Arrow{Pseudo-inverse definition}\\
+%&=\frac{1}{\textbf{d}_k(k)}\textbf{c}_k^T\\
+%&=\frac{1}{\textbf{d}_k(k)}(\textbf{B}_{S}\textbf{C}_S)^T\textbf{c}_k^T\Arrow{$(AB)^T=B^TA^T$}\\
+%&=\frac{1}{\textbf{d}_k(k)}\textbf{C}_S^T\textbf{B}_{S}^T\textbf{c}_k^T\Arrow{Pseudo-inverse definition}\\
 &=\frac{1}{\textbf{d}_k(k)}\textbf{c}_k^T\Arrow{$\textbf{D}_S=\textbf{C}_S\textbf{C}_S^T$}\\
 &=\frac{1}{\|\textbf{c}_k\|^2}\textbf{c}_k^T
 \end{WithArrows}\end{equation*}
@@ -396,12 +399,12 @@ Let $S'=S\setminus \{k\}$. Starting from the definition of $\textbf{v}^\perp(t)$
 For the second part, we have that $\textbf{u}_t$ is the solution to the system \begin{align*}\textbf{u}_t(k) =1\\
             \textbf{u}_t(i) =0 \text{ if } i \notin A_t\\
             \textbf{v}^\perp(t) = \textbf{v}_{k} + \sum_{i \in A_t\setminus\{p(t)\}} \textbf{u}_t(i)\textbf{v}_i=\textbf{B}_S\textbf{u}_t\end{align*}
-But we have that $$\textbf{v}^\perp(t)=\frac{\textbf{c}_k}{\|\textbf{c}_k\|^2}=\frac{\textbf{C}_S^T\textbf{e}_k}{\|\textbf{c}_k\|^2}$$
-if we multiply by $\textbf{C}_S$ we get $\frac{\textbf{C}_S\textbf{C}_S^T\textbf{e}_k}{\|\textbf{c}_k\|^2}=\textbf{u}_t$ But as $\textbf{C}_S\textbf{C}_S^t=\textbf{D}_S$ and $\|\textbf{c}_k\|^2=\langle \textbf{c}_k,\textbf{c}_k\rangle=\textbf{d}_k(k)$, we have that indeed $\frac{\textbf{d}_k}{\textbf{d}_k(k)}=\textbf{u}_t$.
+We just saw that $$\textbf{v}^\perp(t)=\frac{\textbf{c}_k}{\|\textbf{c}_k\|^2}=\frac{\textbf{C}_S^T\textbf{e}_k}{\|\textbf{c}_k\|^2}.$$
+We can multiply by $\textbf{C}_S$ to get $\frac{\textbf{C}_S\textbf{C}_S^T\textbf{e}_k}{\|\textbf{c}_k\|^2}=\textbf{u}_t$. As $\textbf{C}_S\textbf{C}_S^t=\textbf{D}_S$ and $\|\textbf{c}_k\|^2=\langle \textbf{c}_k,\textbf{c}_k\rangle=\textbf{d}_k(k)$, we have that indeed $\frac{\textbf{d}_k}{\textbf{d}_k(k)}=\textbf{u}_t$.
 \end{proof}
 These lemmas mean that once we have computed $\textbf{C}_S$ and $\textbf{D}_S$ at the beginning of the GSW in time $O(n^2d+n^3)$, we update them at most $n$ times in $O(nd+n^2)$ operations and store them with a similar quantity of memory, resulting in a total time of running of $O(n^2(d+n))$ as computing $\delta_t$ and updating the coloring takes $O(n)$ time.
 
-This happens to not be much faster in practice than a clever implementation using rank-one update to compute the inverse necessary to compute the least squares solution. That is because in the latter case, the size of the inverse matrix decreases at each step of the algorithm in that case, thus the one matrix multiplication necessary to compute the update direction becomes faster than the rank one updates described in this section quickly when $n$ is small, as $\textbf{C}_S$ and $\textbf{D}_S$ keep the same size throughout the whole algorithm run.
+This happens to not be much faster in practice than a clever implementation using rank-one update to compute the inverse necessary to compute the least squares solution. That is because in the latter case, the size of the inverse matrix decreases at each step of the algorithm in that case, thus the one matrix multiplication necessary to compute the update direction becomes faster than the rank one updates described in this section quickly when $n$ is small, as $\textbf{C}_S$ and $\textbf{D}_S$ keep the same size throughout the whole algorithm run. One way to alleviate this slowness is not to update nor keep in memory $\textbf{C}_S$ after having computed $\textbf{D}_S$ in the first iteration of the loop as only the latter is used to compute $\textbf{u}_t$ and update itself.
 
 
 \section{Generalizing to any Hyperparallelepiped}\label{different_basis_section}
@@ -415,7 +418,7 @@ Thirdly, the computation of the two potential $\delta$ is different as well for 
 
 All these issues can be solved via some basis changes in the right spots and the modified algorithm is very similar, and should work exactly the same way when given the orthonormal canonical basis of $\mathbb{R}^n$, $\textbf{e}_1,\dots,\textbf{e}_n$. The main idea is that we will keep two separate coloring, $\textbf{z}$ and $\textbf{z}'$, where $\textbf{z}$ is expressed in the canonical basis and $\textbf{z}'$ is expressed as coordinates in $\mathcal{B}$. We will update $\textbf{z}'$ with $\textbf{u}_t'$, that is $\textbf{u}_t$ except it is expressed via its coordinates in $\mathcal{B}$. Computing $\delta_t$ is then fairly easy as we just have to replace $\textbf{z}$ by $\textbf{z}'$ in the normal computation. 
 
-Let $\textbf{B}_{\mathcal{B}}$ be the matrix containing the basis vectors $\textbf{b}_1,\dots,\textbf{b}_n$ as columns. In order to compute $\textbf{u}_t'$, we replace the matrix containing our input vectors as columns, $\textbf{B}$, by $\textbf{B}\textbf{B}_{\mathcal{B}}$. We then apply the same method as usual to find $\textbf{u}_t'$, and change its basis to get $\textbf{u}_t$.
+Let $\textbf{B}_{\mathcal{B}}$ be the matrix containing the basis vectors $\textbf{b}_1,\dots,\textbf{b}_n$ as columns. In order to compute $\textbf{u}_t'$, we replace the matrix containing our input vectors as columns, $\textbf{B}$, by $\textbf{B}'=\textbf{B}\textbf{B}_{\mathcal{B}}$. We then apply the same method as usual to find $\textbf{u}_t'$, and change its basis to get $\textbf{u}_t$.
 
 Putting it all in pseudocode and highlighting the difference with the original algorithm (\ref{walk}) in \textcolor{red}{red}, we get the Algorithm \ref{basiswalk}.\\
 \begin{algorithm}[H]\label{basiswalk}
@@ -427,14 +430,14 @@ Putting it all in pseudocode and highlighting the difference with the original a
 , an initial coloring $\textbf{z}_0\in[-1,1]^n$,   \textcolor{red}{$n$ linearly independent basis vectors $\textbf{b}_1,\dots,\textbf{b}_n\in\mathbb{R}^n$}}
     \Output{a coloring $\textbf{z}_n \in \textcolor{red}{\mathbb{R}^n}$}
    \textcolor{red}{$\textbf{z}_0'=\textbf{B}_{\mathcal{B}}^{-1}\textbf{z}_0$}\\
-   $A_1=\{i\in[n]:|\textbf{z}_0'(i)|<1\}$, $n(1) = \max \{i \in A_1\}$ and $t=1$.\\
-    \textcolor{red}{$\textbf{B}=(\textbf{v}_1,\dots,\textbf{v}_n)\textbf{B}_{\mathcal{B}}$}\\
+   $A_1=\{i\in[n]:\textcolor{red}{|\textbf{z}_0'(i)|}<1\}$, $n(1) = \max \{i \in A_1\}$ and $t=1$.\\
+    \textcolor{red}{$\textbf{B}'=(\textbf{v}_1,\dots,\textbf{v}_n)\textbf{B}_{\mathcal{B}}$}\\
     \While{$A_t\not=\emptyset$}{
         Compute $\textcolor{red}{\textbf{u}_t'}\in\mathbb{R}^n$ such that
         $\begin{cases}
               \textcolor{red}{\textbf{u}_t'}(p(t)) =1\\
               \textcolor{red}{\textbf{u}_t'}(i) =0 \text{ if } i \notin A_t\\
-            \textbf{v}^\perp(t) =   \textcolor{red}{\textbf{B}\textbf{u}_t'}\\
+            \textbf{v}^\perp(t) =   \textcolor{red}{\textbf{B}'\textbf{u}_t'}\\
         \end{cases}$\\
         $\Delta = \{\delta : \textcolor{red}{\textbf{z}_{t-1}' + \delta \textbf{u}_t'} \in [-1,1]^n\}$, let $\begin{cases}
             \delta_t^+ = \max \Delta\\
@@ -444,7 +447,7 @@ Putting it all in pseudocode and highlighting the difference with the original a
             \delta_t^+ \text{ w.p. } \frac{-\delta_t^-}{(\delta_t^+ - \delta_t^-)}\\
             \delta_t^- \text{ w.p. } \frac{\delta_t^+}{(\delta_t^+ - \delta_t^-)}
         \end{cases}$\\
-        $  \textcolor{red}{\textbf{z}_t' = \textbf{z}_{t-1}' + \delta_t \textbf{u}_t'}$, $t\leftarrow t+1$,  $A_t=\{i\in[n]:|  \textcolor{red}{\textbf{z}_{t-1}'}(i)|<1\}$, $p(t) = \max \{i \in A_t\}$.
+        $  \textcolor{red}{\textbf{z}_t' = \textbf{z}_{t-1}' + \delta_t \textbf{u}_t'}$, $t\leftarrow t+1$,  $A_t=\{i\in[n]:\textcolor{red}{|\textbf{z}_{t-1}'(i)|}<1\}$, $p(t) = \max \{i \in A_t\}$.
     }
     Output $  \textcolor{red}{\textbf{B}_{\mathcal{B}}\textbf{z}_t'\in\mathbb{R}^n}$.
     %\caption{Gram-Schmidt walk}
@@ -590,7 +593,7 @@ DGSW & 18641.6 & 19996.16 & 13431.68
 \end{table}
 
 We can see that the vector orders are actually further away from $\mathcal{R}$ than the random orders produced with constant vectors, which means that bigger vectors actually get colored later in the process. Additionally, the DGSW doesn't seem to yield significantly different results. While this is not what we expected upon a first glance at the problem, this behavior actually makes sense, because if we multiply $\textbf{v}_i$ by $\mu%\textbf{v}_i
-$, it's corresponding coordinate in $\textbf{u}_t$ is going to be divided by $\mu$, thus it will move less towards the facet of the hypercube corresponding to the color of $\textbf{v}_i$ and thus be colored later than the shorter vectors.
+$, its corresponding coordinate in $\textbf{u}_t$ is going to be divided by $\mu$, thus it will move less towards the facet of the hypercube corresponding to the color of $\textbf{v}_i$ and thus be colored later than the shorter vectors.
 
 This motivates us to try to find a variant of the algorithm that would color bigger vectors earlier and thus yield shorter vector of imbalances on an input such as $\{\textbf{v},\textbf{v},\textbf{v},3\textbf{v}\}$ for some $\textbf{v}\in\mathbb{R}^d$ and an arbitrary $d\in\mathbb{N}$. One way would be to choose the pivot through some smart condition or to choose another feasible $\textbf{u}_t$ than the default least square solution with minimal norm, as in that specific adversarial example there are an infinite number of valid $\textbf{u}_t$, some of which solve our problem in one step with a perfectly balanced groups.
 
@@ -598,9 +601,9 @@ One such idea is to force the pivot to be the largest norm vector, and then, whe
 
 %Another variant that works but only in this trivial example and not in slightly more complicated examples with for examples 2 groups of vectors is to just force the largest alive vector to be the pivot at every step. This is just a product of the exact solution of the least squares we're choosing as there are infinitely many that wouldn't work. This doesn't work for slightly more convoluted adversarial cases and is just a product of our exact implementation.
 
-A second variant that might help is to do quadratic programming instead of simple least squares when $\textbf{v}_\perp(t)=\textbf{0}$. This way, we can force the quadratic program to minimize both $\|\textbf{Bu}_t\|^2$ but also $\|\textbf{u}_t\|^2$. This could be achieved by adding a line of 1's to the matrix $\textbf{B}$ containing all input vectors as column, and adding as conditions that the chosen $\textbf{u}_t$ must have a 1 in the pivot coordinate and 0's in already colored coordinates, similarly to the conditions in the original GSW system of equation. Then if the $\textbf{u}_t$ chosen through this quadratic program doesn't yield $\textbf{Bu}_t=\textbf{0}$, we discard it and compute $\textbf{u}_t$ through the usual method as the modification would then interfere with the normal properties of the GSW instead of just improving it by adding constraints when there are an infinite number of optimal solutions. This technique coupled with choosing the longest alive vector as pivot actually solves adversarial cases similar to those mentioned three paragraphs ago, as well as more complicated ones such as $\{\textbf{v},\textbf{v},\textbf{v},3\textbf{v},\textbf{w},\textbf{w},2\textbf{w}\}$, and doesn't modify the behavior of the algorithm when $\textbf{v}^\perp(t)\not=\textbf{0}$. The only small issue is that the matrix $\textbf{B}^T\textbf{B}$ then needs to be regularized by adding some very small constant times the identity or it isn't strictly positive definite, which is necessary for our quadratic program solver.
+A second variant that might help is to do quadratic programming instead of simple least squares when $\textbf{v}_\perp(t)=\textbf{0}$. This way, we can force the quadratic program to minimize both $\|\textbf{Bu}_t\|^2$ but also $\|\textbf{u}_t\|^2$. This could be achieved by adding a line of 1's to the matrix $\textbf{B}$ containing all input vectors as column, and adding as conditions that the chosen $\textbf{u}_t$ must have a 1 in the pivot coordinate and 0's in already colored coordinates, similarly to the conditions in the original GSW system of equation. Then if the $\textbf{u}_t$ chosen through this quadratic program doesn't yield $\textbf{Bu}_t=\textbf{0}$, we discard it and compute $\textbf{u}_t$ through the usual method as the modification would then interfere with the normal properties of the GSW instead of just improving it by adding constraints when there are an infinite number of optimal solutions. This technique coupled with choosing the longest alive vector as pivot actually solves adversarial cases similar to those mentioned a couple paragraphs ago, as well as more complicated ones such as $\{\textbf{v},\textbf{v},\textbf{v},3\textbf{v},\textbf{w},\textbf{w},2\textbf{w}\}$, and doesn't modify the behavior of the algorithm when $\textbf{v}^\perp(t)\not=\textbf{0}$. The only small issue is that the matrix $\textbf{B}^T\textbf{B}$ then needs to be regularized by adding some very small constant times the identity or it isn't strictly positive definite, which is necessary for our quadratic program solver.
 
-A third potential method would be to again do quadratic programming, but this time minimize $|(|u|-1)|$ or $(|u|-1)^2$ in addition to $\|\textbf{Bu}\|$, with the same constraints as previously. Despite not being a quadratic or linear function, absolute value in the objective function can be included, it is just necessary to transform it into linear constraints and additional variables, which is a common linear programming trick. This technique would function without forcing a specific pivot and seems thus superior to the previous one, but I didn't have time to program it and test it to make sure that my intuition is indeed correct.
+A third potential method would be to again do quadratic programming, but this time minimize $|(|\textbf{u}|-1)|$ or $(|\textbf{u}|-1)^2$ in addition to $\|\textbf{Bu}\|$, with the same constraints as previously. Despite not being a quadratic or linear function, absolute value in the objective function can be included, it is just necessary to transform it into linear constraints and additional variables, which is a common linear programming trick. This technique would function without forcing a specific pivot and seems thus superior to the previous one, but I didn't have time to program it and test it to make sure that my intuition is indeed correct.
 
 This last variant seems interesting as it intuitively makes sense to color as much as possible in the early steps, as we have more degrees of freedom during these steps. I have not been able to find a situation where that seemed worse than the classical GSW so far.
 
@@ -661,7 +664,7 @@ Results from experiment 1 can be seen in figure \ref{3_types_d_and_i}. The modif
 We can see from the results of experiment 2 in table \ref{norm_earlier}. Our modifications indeed do remove the late coloring. Multiplying once makes it so the vectors are colored approximately randomly and multiplying twice makes it so the bigger vectors are colored earlier, as intended. Still, the norm of the vector of imbalances can be seen to be greater in the previous experiment thus this method isn't good.
 
 \subsection{Can we find another way of computing the update direction ?}
- As we saw that larger vectors get colored later in the process on average when using the classical algorithm, one could ask themselves how to revert this effect. Let $\textbf{B}$ be the matrix containing our input vectors as columns. Using a singular value decomposition, we have that $\textbf{B}=\textbf{U}\bm{\Sigma}\textbf{V}^T$ where $\textbf{U}\in\mathbb{R}^{d\times d}$ and $\textbf{V}\in\mathbb{R}^{n\times n}$ are orthonormal and $\bm{\Sigma}\in\mathbb{R}^{d\times n}$ is all zeros except for the diagonal elements which are positive singular values. Using this decomposition, we can see that $\textbf{B}^\dagger=\textbf{V}\bm{\Sigma}^\dagger\textbf{U}^T$ where $\bm{\Sigma}^\dagger$ is $\bm{\Sigma}^T$ except nonzero entries $\sigma_i$ are replaced by their inverse $1/\sigma_i$. But if one replaced $\bm{\Sigma}^\dagger$ by $\bm{\Sigma}$, then the matrix multiplying the pivot vector would be $\textbf{B}^T$ instead of $\textbf{B}^\dagger$. This suggestion from Pr. Marcus turned out not to work if we want to balance the vectors, but it actually does something close to the opposite which is very interesting. 
+ As we saw that larger vectors get colored later in the process on average when using the classical algorithm, one could ask themselves how to revert this effect. Let $\textbf{B}$ be the matrix containing our input vectors as columns. Using a singular value decomposition, we have that $\textbf{B}=\textbf{U}\bm{\Sigma}\textbf{V}^T$ where $\textbf{U}\in\mathbb{R}^{d\times d}$ and $\textbf{V}\in\mathbb{R}^{n\times n}$ are orthonormal and $\bm{\Sigma}\in\mathbb{R}^{d\times n}$ is all zeros except for the diagonal elements which are positive singular values. Using this decomposition, we can see that $\textbf{B}^\dagger=\textbf{V}\bm{\Sigma}^\dagger\textbf{U}^T$ where $\bm{\Sigma}^\dagger$ is $\bm{\Sigma}^T$ except nonzero entries $\sigma_i$ are replaced by their inverse $1/\sigma_i$. But if one replaced $\bm{\Sigma}^\dagger$ by $\bm{\Sigma}^T$, then the matrix multiplying the pivot vector would be $\textbf{B}^T$ instead of $\textbf{B}^\dagger$. This suggestion from Pr. Marcus turned out not to work if we want to balance the vectors, but it actually does something close to the opposite which is very interesting. 
 
 \subsubsection{Experiment 1}\label{exp1_A_T}
 
@@ -670,7 +673,7 @@ We sampled 200 vectors in dimension 200 in the ball of radius 1. We then ran the
 \subsubsection{Experiment 2}\label{exp2_A_T}
 
 
-We run a similar experiment as in \ref{how_good_at_minimizing_disc} except we look for the assignment maximizing the norm of the vector of imbalances via bruteforcing (\textbf{HDA}) and look at the naive walk trying to maximize the output norm (\textbf{MNW}), similarly to what is described in section \ref{exp1_A_T}.
+We run a similar experiment as in \ref{how_good_at_minimizing_disc} except we look for the assignment maximizing the norm of the vector of imbalances via bruteforcing (\textbf{HNA}) and look at the naive walk trying to maximize the output norm (\textbf{MNW}), similarly to what is described in section \ref{exp1_A_T}.
 
 \subsubsection{Results}
 \begin{figure}[h!]
@@ -857,7 +860,7 @@ In order to investigate that, we created four instances of the hidden cluster wi
 This does not mean that the average coloring time of each vector were very close for each time we ran the technique, but it means that the earliest vector was always the same. While this was for a specific instance of the problem and on a small sample size of different instances, each try took a long time and we weren't able to run more to increase our certainty. There probably exists a smart statistics proof for showing what number is a good number of runs, but that wasn't the focus here.
 
 \subsection{Does the early coloring technique work ?}\label{early_work}
-We want to know if the technique makes sense and works, so we created 100 instances of the hidden cluster with $n=200,k\in\{5,10,15\},d=200$, (so 100 for each $k$) and tried our technique with GSW, DGSW, MAC GSW and MAC DGSW, where MAC is defined in section \ref{pivot_colored_coloring_rules}. We then used our early coloring method with $r=200$ and recorded how often the technique successfully identified the hidden cluster. For DGSW with MAC which is actualy fully deterministic given the first pivot assuming random vector input, we made sure to use each of the 200 vectors as starting pivot exactly once.
+We want to know if the technique makes sense and works, so we created 100 instances of the hidden cluster with $n=200,k\in\{5,10,15\},d=200$, and tried our technique with GSW, DGSW, MAC GSW and MAC DGSW, where MAC is defined in section \ref{pivot_colored_coloring_rules}. We then used our early coloring method with $r=200$ and recorded how often the technique successfully identified the hidden cluster. For DGSW with MAC which is actualy fully deterministic given the first pivot assuming random vector input, we made sure to use each of the 200 vectors as starting pivot exactly once.
 \subsubsection{Results}
 \begin{table}[h!]
 \centering
@@ -891,7 +894,7 @@ GSW ANP&0.26&0.24&0.537&0.54&0.691&0.66
 \end{tabular}
 \label{early_coloring_method_exp2}
 \end{table}
-Results are available in table \ref{early_coloring_method_exp2}. Changing the pivot at each iteration doesn't seem to change much, perhaps because in RMM at least, the same pivot could be chosen again as it could still yield the shortest $\textbf{v}^\perp(t)$. The proportions are slightly higher in dimension 10 compared to those observed in section \ref{early_work}, but that doesn't seem to be the case for the other $k$'s who produced similar proportions, so this might just be because of the sample size. Overall this doesn't appear to be an improvement, especially because there are slightly more computations in when using that variant.
+Results are available in table \ref{early_coloring_method_exp2}. Changing the pivot at each iteration doesn't seem to change much, perhaps because in RMM at least, the same pivot could be chosen again as it could still yield the shortest $\textbf{v}^\perp(t)$. The proportions are slightly higher in dimension 10 compared to those observed in section \ref{early_work}, but that doesn't seem to be the case for the other $k$'s who produced similar proportions, so this might just be because of the sample size. Overall this doesn't appear to be an improvement, especially because there are slightly more computations when using that variant.
 
  
 %\subsection{Can we stop each run earlier ?}

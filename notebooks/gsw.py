@@ -125,7 +125,7 @@ def choose_pivot(v,x,alive,mode='random',debug=False):
     return pivot
 
 @timer
-def next_direction(p,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,B_S=None,C_S=None,return_all=False):
+def next_direction(p,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=False,bigger_first=False,force_balance=False,fast_lst_sq=True,solve_adversarial=False,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,flag_issue=False,B_S=None,C_S=None,return_all=False,compute_c_s=True):
     #This function computes the update direction, as well as the pivot when it depends on the potential updates
     alive_count=sum(alive)
     d,n=B.shape
@@ -241,14 +241,17 @@ def next_direction(p,B,alive,old_alive_and_not_pivot,old_alive,X_t=None,debug=Fa
                     for k in indices_to_update:
                         b_k=B_S[:,k]
                         update_B=b_k[k]**-1*np.matmul(b_k.reshape((n,1)),b_k.reshape((1,n)))
-                        update_C=b_k[k]**-1*np.matmul(b_k.reshape((n,1)),C_S[k,:].reshape((1,C_S.shape[1])))
+                        if compute_c_s:
+                            update_C=b_k[k]**-1*np.matmul(b_k.reshape((n,1)),C_S[k,:].reshape((1,C_S.shape[1])))
                         if debug:
                             print(f'B_S:{B_S}')
                             print(f'update of B_S: {update_B}')
-                            print(f'C_S:{C_S}')
-                            print(f'update of C_S: {update_C}')
+                            if compute_c_s:
+                                print(f'C_S:{C_S}')
+                                print(f'update of C_S: {update_C}')
                         B_S-=update_B
-                        C_S[alive]-=update_C[alive]
+                        if compute_c_s:
+                            C_S[alive]-=update_C[alive]
                 except IndexError:
                     print('Error in updating in no_matrix_mult part')
                     print(f'x:{x}')
@@ -467,7 +470,7 @@ def orthonormal_basis(n):
     return basis
 
 @timer
-def gram_schmidt_walk(v,x,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False,pivot=None,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,force_no_mat_mult=False,flag_issue=False,early_stop=None,always_new_pivot=False):
+def gram_schmidt_walk(v,x,plot=False,debug=False,smallest_delta=False,basis=None,order=False,bigger_first=False,force_balance=False,fast_lst_sq=True,return_pivot_in_colored=False,mode=None,return_pivots=False,pivot=None,d_instead_of_d_inv=False,i_instead_of_d_inv=False,no_matrix_mult=True,force_no_mat_mult=False,flag_issue=False,early_stop=None,always_new_pivot=False,compute_c_s=True):
     #function to call to actually perform GSW
     n=len(x)
     return_all_modes=['move_inv_prop','min_move_random']
@@ -510,7 +513,7 @@ def gram_schmidt_walk(v,x,plot=False,debug=False,smallest_delta=False,basis=None
             if debug:
                 print(f'Stopping early after step {i-1}')
             break
-        u_in_basis,colinear,X_t,old_alive_and_not_pivot,old_alive,B_S,C_S=next_direction(p,B,alive,old_alive_and_not_pivot,old_alive,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq,i_instead_of_d_inv=i_instead_of_d_inv,d_instead_of_d_inv=d_instead_of_d_inv,B_S=B_S,C_S=C_S,no_matrix_mult=no_matrix_mult,flag_issue=flag_issue,return_all=mode in return_all_modes)
+        u_in_basis,colinear,X_t,old_alive_and_not_pivot,old_alive,B_S,C_S=next_direction(p,B,alive,old_alive_and_not_pivot,old_alive,X_t,debug=debug,bigger_first=bigger_first,force_balance=force_balance,fast_lst_sq=fast_lst_sq,i_instead_of_d_inv=i_instead_of_d_inv,d_instead_of_d_inv=d_instead_of_d_inv,B_S=B_S,C_S=C_S,no_matrix_mult=no_matrix_mult,flag_issue=flag_issue,return_all=mode in return_all_modes,compute_c_s=compute_c_s)
         d1,d2,p,u_in_basis=next_factor(x_in_basis,u_in_basis if (i==0 or (not (mode in return_all_modes)) or always_new_pivot or not alive[p]) else [u[1] for u in u_in_basis if u[0]==p][0],p,colinear,debug=debug,smallest_delta=smallest_delta,bigger_first=bigger_first,mode=None if (not always_new_pivot and alive[p] and i!=0) else mode,always_new_pivot=always_new_pivot)
         pivots.append(p)
         if basis is not None:
